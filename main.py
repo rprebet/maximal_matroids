@@ -5,7 +5,7 @@ from time import time
 # Operation on hypergraphs
 def is_inside(s, L):
     """
-    Input: s (set); L (list of sets)
+    Input: vertex s (set); hypergraph L (list of sets)
     Check if s is contained in an element of L
     """
     for l in L:
@@ -15,7 +15,7 @@ def is_inside(s, L):
 
 def inter_size(s, L, n):
     """
-    Input: s (set); L (list of sets); n (int)
+    Input: vertex s (set); hypergraph L (list of sets); n (int)
     Check if s has an intersection with an element of L of size >= n
     (this also means that a n-subset of s is contained in some l in L)
     """
@@ -26,7 +26,7 @@ def inter_size(s, L, n):
 
 def rem_sub(XT):
     """
-    Input: XT (2-list of sets)
+    Input: labeled hypergraph XT (2-list of sets)
     Remove redundant subsets from XT
     Criterion 1: sets that are subsets of another set in XT[k]
     Criterion 2: sets in XT[0] that are one element larger than a set in XT[1]
@@ -63,7 +63,7 @@ def rem_sub(XT):
 
 def solve_int(XT, r):
     """
-    Input: hypergraph XT (2-list of sets); r (integer)
+    Input: labeled hypergraph XT (2-list of sets); r (integer)
     Output: * flag (bool) indicating if modifications have been done
             * HTbis (2-list of sets) fixed hypegraph
 
@@ -124,7 +124,7 @@ def solve_int(XT, r):
 
 def detect_mat_case(XT, c):
     """
-    Input: hypergraph XT (2-list of sets), c (int)
+    Input: labeled hypergraph XT (2-list of sets), c (int)
     Output: c (int), (i,j) (int, int)
 
     Perform the test of the case 'c' of submodularity fail 
@@ -157,33 +157,52 @@ def detect_mat_case(XT, c):
     return 0, () # No failure found
 
 def detect_mat(XT):
-    #######################
-    # seq fixes the order of the case detection
-    seq = [4, 2, 1, 3]
-    ####################
-    cout, i = 0, 0
-    while cout == 0 and i < len(seq):
-        cout, ind = detect_mat_case(XT, seq[i])
-        i += 1
-    return cout, ind
+    """
+    Input: labeled hypergraph XT (2-list of sets)
+    Perform submodularity fail tests 
+    in a chosen case order
+    """
+    seq = [4, 2, 1, 3] # Custom case detection order (heuristic)
+    for c in seq:
+        case, ind = detect_mat_case(XT, c)
+        if case != 0:
+            return case, ind
+    return 0, ()
 
 def replace(L, P, smin):
+    """
+    Input: hypergraph L (list of sets), partition P (list of sets), smin (int)
+    Output: hypergraph L1 (list of sets)
+
+    Replace elements in sets of L base on the equivalence relation
+    defined by P, taking minimal element as representative.
+    Return in L1, only resulting sets of size >= smin (=[label of L]+1)
+    """
+    # Construct a dict Lrep to associate each element to its minimal representative
     Prep = [ min(p) for p in P ]
     Lrep = { p:Prep[i] for i in range(len(P)) for p in P[i]}
+    # Contruct new hypergraph L1 based on the dict Lrep (repetition is avoided by set structure)
     L1 = [ { Lrep[j] for j in l } for l in L ]
-    return [ l for l in L1 if len(l)>=smin ]
+    return [ l for l in L1 if len(l)>=smin ] 
 
-def identify(HT, L):
-    # Identify all elements of L in HT (make double points)
+def identify(HT, l):
+    """
+    Input:  * HT = (XT, P), labeled hypergraph HT (2-list of sets), partition P (list of sets);
+            * points to identify l (set)
+    Identify all elements of L in HT (make them double points). 
+    Call 'replace' on the corresponding new partition
+    """
+    # Construct the new partition P1 
+    # S is the eq. class of elements in L based on existing partition P
     XT, P = HT
     P1, S = [], set({})
     for p in P:
-        if len(L & p)>0:
+        if len(l & p)>0:
             S = S | p
         else:
             P1.append(p)
     P1.append(S)
-
+    # Perform replacement based on P1 using 'replace', with smin=(label+1)
     XT1 = [ replace(XT[i], P1, 4-i) for i in range(len(XT)) ]
     return [XT1, P1]
 
