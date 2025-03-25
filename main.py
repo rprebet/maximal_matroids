@@ -3,39 +3,53 @@ from time import time
 ### Code ###
 
 # Operation on hypergraphs
-def is_inside(S, L):
+def is_inside(s, L):
+    """
+    Input: s (set); L (list of sets)
+    Check if s is contained in an element of L
+    """
     for l in L:
-        if S <= l:
+        if s <= l: 
             return True
     return False
 
-def inter_size(S, L, n):
-    # Check if there is l in L s.t. S\cap l has at least n elts
-    # equivalently if a n-elts subset of S is contained in some l in L
+def inter_size(s, L, n):
+    """
+    Input: s (set); L (list of sets); n (int)
+    Check if s has an intersection with an element of L of size >= n
+    (this also means that a n-subset of s is contained in some l in L)
+    """
     for l in L:
-        if len(l & S) >= n:
+        if len(l & s) >= n:
             return True
     return False
 
-def rem_sub_inp(XT):
-    # Remove sets in XT[k] contained in another set of XT[k]
-    # And sets in XT[0] that are a set of XT[1] + 1 elt
-    # In place version
+def rem_sub(XT):
+    """
+    Input: XT (2-list of sets)
+    Remove redundant subsets from XT
+    Criterion 1: sets that are subsets of another set in XT[k]
+    Criterion 2: sets in XT[0] that are one element larger than a set in XT[1]
+    This is an in-place function
+    """
+
+    # Criterion 1
     for k in range(len(XT)):
         i = 0
         while i < len(XT[k]):
             j = i + 1
             while j < len(XT[k]):
-                if XT[k][i] <= XT[k][j]:  # If XT[k][i] is a subset of XT[k][j], remove XT[k][i]
+                if XT[k][i] <= XT[k][j]:  # If i-th set is a subset of j-th, remove it
                     XT[k].pop(i)
                     i -= 1  # Adjust index since current i was removed
                     break
-                elif XT[k][j] <= XT[k][i]:  # If XT[k][j] is a subset of XT[k][i], remove XT[k][j]
+                elif XT[k][j] <= XT[k][i]:  # If j-th set is a subset of i-th, remove j-th
                     XT[k].pop(j)
                 else:
                     j += 1
             i += 1
 
+    # Criterion 2
     i = 0
     while i < len(XT[0]):
         j, n = 0, len(XT[0][i])
@@ -48,45 +62,50 @@ def rem_sub_inp(XT):
         i += 1
 
 def solve_int(XT, r):
+    """
+    Input: hypergraph XT (2-list of sets); r (integer)
+    Output: * flag (bool) indicating if modifications have been done
+            * HTbis (2-list of sets) fixed hypegraph
+
+    Fix all submodularity failures that require no choice
+    depending on the situation given by r 
+    (no |circuit|< r included)
+    """
     flag = False
-    # Fix case 3
+    # Fix Case 3
     T1, T2 = XT[0].copy(), XT[1].copy()
     for i in range(len(T2)):
         for j in range(i+1,len(T2)):
-            e1, e2 = T2[i], T2[j]
-            if len(e1 & e2) == 1 and not is_inside(e1 | e2, XT[0]):
+            if len(T2[i] & T2[j]) == 1 and not is_inside(T2[i] | T2[j], XT[0]):
                 flag = True
-                T1.append(e1 | e2)
+                T1.append(T2[i] | T2[j])
+                
     HTbis = [T1, T2]
-    rem_sub_inp(HTbis)
+    rem_sub(HTbis)
 
     if r >= 3:
         # Fix Case 2
         T1, T2 = HTbis
         for i in range(len(T1)):
             for j in range(len(T2)):
-                nb = len(T1[i] & T2[j])
-                if nb > 1 and not is_inside(T1[i] | T2[j], T1):
+                if len(T1[i] & T2[j]) > 1 and not is_inside(T1[i] | T2[j], T1):
                     flag = True
-                    e1, e2 = T1[i], T2[j]
                     T1 = [ T1[k] for k in range(len(T1)) if k != i ]
-                    T1.append(e1 | e2)
+                    T1.append(T1[i] | T2[j])
         HTbis = [T1, T2]
-        rem_sub_inp(HTbis)
+        rem_sub(HTbis)
 
     if r == 3:
         # Fix Case 4
         T1, T2 = HTbis
         for i in range(len(T2)):
             for j in range(i+1,len(T2)):
-                nb = len(T2[i] & T2[j])
-                if nb > 1:
+                if len(T2[i] & T2[j]) > 1:
                     flag = True
-                    e1, e2 = T2[i], T2[j]
                     T2 = [ T2[k] for k in range(len(T2)) if k not in [i,j] ]
-                    T2.append(e1 | e2)
+                    T2.append(T2[i] | T2[j])
         HTbis = [T1, T2]
-        rem_sub_inp(HTbis)
+        rem_sub(HTbis)
 
     if r >= 4:
         # Fix Case 1
@@ -96,42 +115,46 @@ def solve_int(XT, r):
                 S = T1[i] & T1[j]
                 if len(S) > 2 and not is_inside(S, T2):
                     flag = True
-                    e1, e2 = T1[i], T1[j]
                     T1 = [ T1[k] for k in range(len(T1)) if k not in [i,j] ]
-                    T1.append(e1 | e2)
+                    T1.append(T1[i] | T1[j])
         HTbis = [T1, T2]
-        rem_sub_inp(HTbis)
+        rem_sub(HTbis)
 
     return flag, HTbis
 
 def detect_mat_case(XT, c):
-    T1, T2 = XT
+    """
+    Input: hypergraph XT (2-list of sets), c (int)
+    Output: c (int), (i,j) (int, int)
 
-    if c == 3:
-        for i in range(len(T2)):
-            for j in range(i+1,len(T2)):
-                nb = len(T2[i] & T2[j])
-                if nb == 1 and not is_inside(T2[i] | T2[j], T1):
-                    return 3, (i,j)
-    if c == 2:
-        for i in range(len(T1)):
-            for j in range(len(T2)):
-                nb = len(T1[i] & T2[j])
-                if nb > 1 and not is_inside(T1[i] | T2[j], T1):
-                    return 2, (i,j)
-    if c == 4:
-        for i in range(len(T2)):
-            for j in range(i+1,len(T2)):
-                nb = len(T2[i] & T2[j])
-                if nb > 1:
-                    return 4, (i,j)
+    Perform the test of the case 'c' of submodularity fail 
+    Return indices (i,j) of corresponding 'c'-failure, if found
+    If no failure, return '0, ()' (the hypergraph defines a matroid)
+    """
+
+    T1, T2 = XT
     if c == 1:
         for i in range(len(T1)):
             for j in range(i+1,len(T1)):
                 S = T1[i] & T1[j]
                 if len(S) > 2 and not is_inside(S, T2):
                     return 1, (i,j)
-    return 0, ()
+    if c == 2:
+        for i in range(len(T1)):
+            for j in range(len(T2)):
+                if len(T1[i] & T2[j]) > 1 and not is_inside(T1[i] | T2[j], T1):
+                    return 2, (i,j)
+    if c == 3:
+        for i in range(len(T2)):
+            for j in range(i+1,len(T2)):
+                if len(T2[i] & T2[j]) == 1 and not is_inside(T2[i] | T2[j], T1):
+                    return 3, (i,j)
+    if c == 4:
+        for i in range(len(T2)):
+            for j in range(i+1,len(T2)):
+                if len(T2[i] & T2[j]) > 1:
+                    return 4, (i,j)
+    return 0, () # No failure found
 
 def detect_mat(XT):
     #######################
@@ -171,7 +194,7 @@ def comp_leaves(HT, r, pproc=False):
     XT = [XT[0].copy(), XT[1].copy()]
     Lcand = []
 
-    rem_sub_inp(XT)
+    rem_sub(XT)
     if pproc:
         flag = True
         while flag:
@@ -382,14 +405,14 @@ def poset_mins_part_update(LX, Y, ind, f):
     Input:
     - LX is a list of lists X1,...,XN such that:
      * only X1>....>XN is possible
-     * X1 \cup ... \cup XN are minimal elts (i.e. elts are not pairwise comparable)
+     * X1 \\cup ... \\cup XN are minimal elts (i.e. elts are not pairwise comparable)
     - Y is a list of elements
     - 1 <= ind <= N an integer such that Y>Xj only if j>=ind
     Output:
     - A list of list X1,...,Yi,...,XN such that:
      * only X1>..>Yind>..>XN is possible
-     * X1 \cup..Yind \cup...\cup XN are the minimal elts of
-       X1 \cup ... \cup XN \cup Y
+     * X1 \\cup..Yind \\cup...\\cup XN are the minimal elts of
+       X1 \\cup ... \\cup XN \\cup Y
     """
 
     N = len(LX)
@@ -550,13 +573,13 @@ def printmat(H, d, pref=""):
 
 # Vamos example
 ### Data ###
-XT = [[{1, 2, 3, 4}, {3, 4, 5, 6}, {5, 6, 7, 8}, {1, 2, 7, 8},{3, 4, 7, 8}],[]]
+XT = [[{1, 2, 3, 4}, {3, 4, 5, 6}, {5, 6, 7, 8}, {1, 2, 7, 8},{3, 4, 7, 8},{1,2,5,6},{1,3,5,7},{8,1,3,6},{8,1,4,5},{1,4,6,7}],[]]
 d = 8
 P = [{i} for i in range(1, d+1)]
 HT = [XT, P]
 
 # Compute upper cover of HT
-mL = upper_covers(HT, {1,2,3,4}, v=3, preprocess = False)
+mL = upper_covers(HT, {1,2,3,4}, v=1, preprocess = False)
 
 # Printing results
 print("Found {} minimal matroids above M:".format(len(mL)))
