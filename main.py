@@ -90,8 +90,7 @@ def solve_int(XT, r):
             for j in range(len(T2)):
                 if len(T1[i] & T2[j]) > 1 and not is_inside(T1[i] | T2[j], T1):
                     flag = True
-                    T1 = [ T1[k] for k in range(len(T1)) if k != i ]
-                    T1.append(T1[i] | T2[j])
+                    T1 = [ T1[k] for k in range(len(T1)) if k != i ] + [T1[i] | T2[j]]
         HTbis = [T1, T2]
         rem_sub(HTbis)
 
@@ -102,8 +101,7 @@ def solve_int(XT, r):
             for j in range(i+1,len(T2)):
                 if len(T2[i] & T2[j]) > 1:
                     flag = True
-                    T2 = [ T2[k] for k in range(len(T2)) if k not in [i,j] ]
-                    T2.append(T2[i] | T2[j])
+                    T2 = [ T2[k] for k in range(len(T2)) if k not in [i,j] ] + [T2[i] | T2[j]]
         HTbis = [T1, T2]
         rem_sub(HTbis)
 
@@ -115,8 +113,7 @@ def solve_int(XT, r):
                 S = T1[i] & T1[j]
                 if len(S) > 2 and not is_inside(S, T2):
                     flag = True
-                    T1 = [ T1[k] for k in range(len(T1)) if k not in [i,j] ]
-                    T1.append(T1[i] | T1[j])
+                    T1 = [ T1[k] for k in range(len(T1)) if k not in [i,j] ] + [T1[i] | T1[j]]
         HTbis = [T1, T2]
         rem_sub(HTbis)
 
@@ -375,50 +372,6 @@ def inf_hyper(H1, H2):
 
     return True
 
-def poset_mins(X, f):
-    non_minimal = set()
-    n = len(X)
-
-    for i in range(n):
-        x = X[i]
-        if i in non_minimal:
-            continue
-
-        for j in range(i + 1, n):
-            y = X[j]
-            if j in non_minimal:
-                continue
-
-            if f(x, y):  # If x <= y, y is not minimal
-                non_minimal.add(j)
-            elif f(y, x):  # If y <= x, x is not minimal
-                non_minimal.add(i)
-                break
-
-    return [X[i] for i in range(n) if i not in non_minimal]
-
-def poset_mins_update(Xmin, Y, f):
-    # Xmin are minimal elements in some poset X
-    # computes minimal elements of Xmin \cup Y
-    # Combine min(X) and Y into one candidate set
-    cand = Xmin + Y
-    n, m = len(Xmin), len(Y)
-
-    # Identify the minimal elements in the combined set
-    is_minimal = [True] * (n + m)  # Boolean array to track minimality
-
-    for i in range(m):
-        for j in range(n+i):
-            if is_minimal[j]:
-                if f(cand[j], cand[i+n]):  # cand[j] less than cand[i+n]
-                    is_minimal[i+n] = False
-                    break
-                elif f(cand[i+n], cand[j]):  # cand[i+n] <= cand[j]
-                    is_minimal[j] = False
-
-    # Return only the elements marked as minimal
-    return [cand[i] for i in range(n+m) if is_minimal[i]]
-
 def poset_mins_part_update(LX, Y, ind, f):
     """
     Input:
@@ -592,7 +545,7 @@ def printmat(H, d, pref=""):
 
 # Vamos example
 ### Data ###
-XT = [[{1, 2, 3, 4}, {3, 4, 5, 6}, {5, 6, 7, 8}, {1, 2, 7, 8},{3, 4, 7, 8},{1,2,5,6},{1,3,5,7},{8,1,3,6},{8,1,4,5},{1,4,6,7}],[]]
+XT = [[{1, 2, 3, 4}, {3, 4, 5, 6}, {5, 6, 7, 8}, {1, 2, 7, 8},{3, 4, 7, 8},{1,2,5,6},{1,3,5,7},{8,1,3,6},{8,1,4,5},{1,4,6,7},{8,2,3,5},{2,3,6,7}],[]]
 d = 8
 P = [{i} for i in range(1, d+1)]
 HT = [XT, P]
