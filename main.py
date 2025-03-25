@@ -17,15 +17,6 @@ def inter_size(S, L, n):
             return True
     return False
 
-def rem_sub(l):
-    """Remove redundant subsets in L (in another one)."""
-    l.sort(reverse=True, key=len)  # Sort by decreasing size
-    filtered = []
-    for s in l:
-        if not any(s < t for t in filtered):
-            filtered.append(s)
-    return filtered
-
 def rem_sub_inp(XT):
     # Remove sets in XT[k] contained in another set of XT[k]
     # And sets in XT[0] that are a set of XT[1] + 1 elt
