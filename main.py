@@ -17,23 +17,14 @@ def inter_size(S, L, n):
             return True
     return False
 
-def rem_sub(L):
-    # Remove sets in L contained in another set of L
-    i = 0
-    L1 = L.copy()
-    while i < len(L1):
-        j = i + 1
-        while j < len(L1):
-            if L1[i] <= L1[j]:  # If L[i] is a subset of L[j], remove L[i]
-                L1.pop(i)
-                i -= 1  # Adjust index since current i was removed
-                break
-            elif L1[j] <= L1[i]:  # If L[j] is a subset of L[i], remove L[j]
-                L1.pop(j)
-            else:
-                j += 1
-        i += 1
-    return L1
+def rem_sub(l):
+    """Remove redundant subsets in L (in another one)."""
+    l.sort(reverse=True, key=len)  # Sort by decreasing size
+    filtered = []
+    for s in l:
+        if not any(s < t for t in filtered):
+            filtered.append(s)
+    return filtered
 
 def rem_sub_inp(XT):
     # Remove sets in XT[k] contained in another set of XT[k]
@@ -580,3 +571,4 @@ mL = upper_covers(HT, {1,2,3,4}, v=3, preprocess = False)
 print("Found {} minimal matroids above M:".format(len(mL)))
 for i,l in enumerate(mL):
     printmat(l, d, pref="M{: <{width}}|".format(i+1, width=len(str(len(mL)))))
+
