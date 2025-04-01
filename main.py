@@ -119,7 +119,7 @@ def solve_int(XT, r):
 
     return flag, HTbis
 
-def detect_mat_case(XT, c):
+def detect_mat_case(XT, c, r):
     """
     Input: labeled hypergraph XT (2-list of sets), c (int)
     Output: c (int), (i,j) (int, int)
@@ -141,19 +141,19 @@ def detect_mat_case(XT, c):
             for j in range(len(T2)):
                 if len(T1[i] & T2[j]) > 1 and not T2[j] <= T1[i]:
                     return 2, (i,j)
-    if c == 3:
+    if c == 3 and r<=3:
         for i in range(len(T2)):
             for j in range(i+1,len(T2)):
                 if len(T2[i] & T2[j]) == 1 and not is_inside(T2[i] | T2[j], T1):
                     return 3, (i,j)
-    if c == 4:
+    if c == 4 and r<=3:
         for i in range(len(T2)):
             for j in range(i+1,len(T2)):
                 if len(T2[i] & T2[j]) > 1:
                     return 4, (i,j)
     return 0, () # No failure found
 
-def detect_mat(XT):
+def detect_mat(XT, r):
     """
     Input: labeled hypergraph XT (2-list of sets)
     Perform submodularity fail tests 
@@ -161,7 +161,7 @@ def detect_mat(XT):
     """
     seq = [4, 2, 1, 3] # Custom case detection order (heuristic)
     for c in seq:
-        case, ind = detect_mat_case(XT, c)
+        case, ind = detect_mat_case(XT, c, r)
         if case != 0:
             return case, ind
     return 0, ()
@@ -216,7 +216,7 @@ def comp_leaves(HT, r, pproc=False):
         while flag:
             flag, XT = solve_int(XT, r)
 
-    c, ind = detect_mat(XT)
+    c, ind = detect_mat(XT, r)
     if c == 0:
       # This rpz a matroid
       Lcand.append([XT, P])
@@ -546,7 +546,7 @@ def printmat(H, d, pref=""):
 # Vamos example
 ### Data ###
 XT = [[{1, 2, 3, 4}, {3, 4, 5, 6}, {5, 6, 7, 8}, {1, 2, 7, 8},{3, 4, 7, 8}],[]]
-d = 8
+d = 11
 P = [{i} for i in range(1, d+1)]
 HT = [XT, P]
 
