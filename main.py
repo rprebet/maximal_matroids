@@ -441,7 +441,7 @@ def upper_covers(HT, S, v=1, preprocess = False):
     d = len(P)
     tleaf, tmin = 0, 0
 
-    v>0 and print("Compute minimals in in " + ", ".join([ ["A","B","C","D"][i-1] for i in S]))
+    v>0 and print("Compute minimals in " + ", ".join(["S{}(M)".format(i) for i in S]))
 
     Lcumins = [ [] for _ in range(4) ]
 
@@ -459,7 +459,7 @@ def upper_covers(HT, S, v=1, preprocess = False):
                             Lcumins = poset_mins_part_update(Lcumins, tmp, 4, inf_hyper)
                             tleaf += t1 - t;  tmin += time() - t1
                             v==2 and print("Add {{{},{},{},{}}}: {:.2g}s".format(e1,e2,e3,e4,time()-t))
-                            v>2 and print("Add {{{},{},{},{}}}: {:,} cands ({:.2g}s); {:,} D-current mins ({:.2g}s) ".format(e1,e2,e3,e4,len(tmp), t1-t, len(Lcumins[3]), time()-t1))
+                            v>2 and print("Add {{{},{},{},{}}}: {:,} cands ({:.2g}s); {:,} S4-current mins ({:.2g}s) ".format(e1,e2,e3,e4,len(tmp), t1-t, len(Lcumins[3]), time()-t1))
         v>1 and print("{:,} current mins".format(sum(map(len,Lcumins))))
 
     if 3 in S:
@@ -475,7 +475,7 @@ def upper_covers(HT, S, v=1, preprocess = False):
                         Lcumins = poset_mins_part_update(Lcumins, tmp, 3, inf_hyper)
                         tleaf += t1 - t;  tmin += time() - t1
                         v==2 and print("Add {{{},{},{}}}: {:.2g}s".format(e1,e2,e3,time()-t))
-                        v>2 and print("Add {{{},{},{}}}: {:,} cands ({:.2g}s); {:,} C-current mins ({:.2g}s) ".format(e1,e2,e3,len(tmp), t1-t, len(Lcumins[2]), time()-t1))
+                        v>2 and print("Add {{{},{},{}}}: {:,} cands ({:.2g}s); {:,} S3-current mins ({:.2g}s) ".format(e1,e2,e3,len(tmp), t1-t, len(Lcumins[2]), time()-t1))
         v>1 and print("{:,} current mins".format(sum(map(len,Lcumins))))
 
     if 2 in S:
@@ -488,7 +488,7 @@ def upper_covers(HT, S, v=1, preprocess = False):
                 Lcumins = poset_mins_part_update(Lcumins, tmp, 2, inf_hyper)
                 tleaf += t1 - t;  tmin += time() - t1
                 v==2 and print("Add {{{},{}}}: {:.2g}s".format(e1,e2,time()-t))
-                v>2 and print("Add {{{},{}}}: {:,} cands ({:.2g}s); {:,} B-current mins ({:.2g}s) ".format(e1,e2,len(tmp), t1-t, len(Lcumins[1]), time()-t1))
+                v>2 and print("Add {{{},{}}}: {:,} cands ({:.2g}s); {:,} S2-current mins ({:.2g}s) ".format(e1,e2,len(tmp), t1-t, len(Lcumins[1]), time()-t1))
         v>1 and print("{:,} current mins".format(sum(map(len,Lcumins))))
 
     if 1 in S:
@@ -497,7 +497,7 @@ def upper_covers(HT, S, v=1, preprocess = False):
         t1 = time()
         Lcumins = poset_mins_part_update(Lcumins, tmp, 1, inf_hyper)
         v==2 and print("Add loops: {:.2g}s".format(time()-t))
-        v>2 and print("Add loops: {:,} cands ({:.2g}s); {:,} A-current mins ({:.2g}s) ".format(len(tmp), t1-t, len(Lcumins[0]), time()-t1))
+        v>2 and print("Add loops: {:,} cands ({:.2g}s); {:,} S1-current mins ({:.2g}s) ".format(len(tmp), t1-t, len(Lcumins[0]), time()-t1))
         tleaf += t1 - t;  tmin += time() - t1
         v>1 and print("{:,} current mins".format(sum(map(len,Lcumins))))
 
@@ -554,7 +554,7 @@ P = [{i} for i in range(1, d+1)]
 HT = [XT, P]
 
 # Compute upper cover of HT
-mL = upper_covers(HT, {1,2,3,4}, v=1, preprocess = False)
+mL = upper_covers(HT, {1,2,3,4}, v=2, preprocess = False)
 
 # Printing results
 print("Found {} minimal matroids above M:".format(len(mL)))
