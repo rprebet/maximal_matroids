@@ -1,4 +1,5 @@
 from time import time
+from itertools import combinations
 
 ### Code ###
 
@@ -446,49 +447,43 @@ def upper_covers(HT, S, v=1, preprocess = False):
     Lcumins = [ [] for _ in range(4) ]
 
     if 4 in S:
-        for i in range(d):
-            for j in range(i+1,d):
-                for k in range(j+1, d):
-                    for l in range(k+1, d):
-                        e1, e2, e3, e4 = [ min(P[ind]) for ind in [i,j,k,l] ]
-                        tmp = {e1, e2, e3, e4}
-                        if not inter_size(tmp, XT[0], 3) and not is_inside(tmp, XT[1]):
-                            t = time()
-                            tmp = comp_leaves([ [XT[0], XT[1]+[tmp]] , P], 4, pproc=preprocess)
-                            t1 = time()
-                            Lcumins = poset_mins_part_update(Lcumins, tmp, 4, inf_hyper)
-                            tleaf += t1 - t;  tmin += time() - t1
-                            v==2 and print("Add {{{},{},{},{}}}: {:.2g}s".format(e1,e2,e3,e4,time()-t))
-                            v>2 and print("Add {{{},{},{},{}}}: {:,} cands ({:.2g}s); {:,} S4-current mins ({:.2g}s) ".format(e1,e2,e3,e4,len(tmp), t1-t, len(Lcumins[3]), time()-t1))
+        for (i, j, k, l) in combinations(range(d), 4):
+            e1, e2, e3, e4 = [ min(P[ind]) for ind in [i,j,k,l] ]
+            tmp = {e1, e2, e3, e4}
+            if not inter_size(tmp, XT[0], 3) and not is_inside(tmp, XT[1]):
+                t = time()
+                tmp = comp_leaves([ [XT[0], XT[1]+[tmp]] , P], 4, pproc=preprocess)
+                t1 = time()
+                Lcumins = poset_mins_part_update(Lcumins, tmp, 4, inf_hyper)
+                tleaf += t1 - t;  tmin += time() - t1
+                v==2 and print("Add {{{},{},{},{}}}: {:.2g}s".format(e1,e2,e3,e4,time()-t))
+                v>2 and print("Add {{{},{},{},{}}}: {:,} cands ({:.2g}s); {:,} S4-current mins ({:.2g}s) ".format(e1,e2,e3,e4,len(tmp), t1-t, len(Lcumins[3]), time()-t1))
         v>1 and print("{:,} current mins".format(sum(map(len,Lcumins))))
 
     if 3 in S:
-        for i in range(d):
-            for j in range(i+1,d):
-                for k in range(j+1, d):
-                    e1, e2, e3 = [ min(P[ind]) for ind in [i,j,k] ]
-                    lijk = {e1, e2, e3}
-                    if not is_inside(lijk, XT[0]):
-                        t = time()
-                        tmp = comp_leaves([ [ XT[0]+[lijk], XT[1]] , P], 3, pproc=preprocess)
-                        t1 = time()
-                        Lcumins = poset_mins_part_update(Lcumins, tmp, 3, inf_hyper)
-                        tleaf += t1 - t;  tmin += time() - t1
-                        v==2 and print("Add {{{},{},{}}}: {:.2g}s".format(e1,e2,e3,time()-t))
-                        v>2 and print("Add {{{},{},{}}}: {:,} cands ({:.2g}s); {:,} S3-current mins ({:.2g}s) ".format(e1,e2,e3,len(tmp), t1-t, len(Lcumins[2]), time()-t1))
+        for (i, j, k) in combinations(range(d), 3):
+            e1, e2, e3 = [ min(P[ind]) for ind in [i,j,k] ]
+            lijk = {e1, e2, e3}
+            if not is_inside(lijk, XT[0]):
+                t = time()
+                tmp = comp_leaves([ [ XT[0]+[lijk], XT[1]] , P], 3, pproc=preprocess)
+                t1 = time()
+                Lcumins = poset_mins_part_update(Lcumins, tmp, 3, inf_hyper)
+                tleaf += t1 - t;  tmin += time() - t1
+                v==2 and print("Add {{{},{},{}}}: {:.2g}s".format(e1,e2,e3,time()-t))
+                v>2 and print("Add {{{},{},{}}}: {:,} cands ({:.2g}s); {:,} S3-current mins ({:.2g}s) ".format(e1,e2,e3,len(tmp), t1-t, len(Lcumins[2]), time()-t1))
         v>1 and print("{:,} current mins".format(sum(map(len,Lcumins))))
 
     if 2 in S:
-        for i in range(d):
-            for j in range(i+1,d):
-                e1, e2 = [ min(P[ind]) for ind in [i,j] ]
-                t = time()
-                tmp = comp_leaves(identify(HT, {e1, e2}), 2, pproc=preprocess)
-                t1 = time()
-                Lcumins = poset_mins_part_update(Lcumins, tmp, 2, inf_hyper)
-                tleaf += t1 - t;  tmin += time() - t1
-                v==2 and print("Add {{{},{}}}: {:.2g}s".format(e1,e2,time()-t))
-                v>2 and print("Add {{{},{}}}: {:,} cands ({:.2g}s); {:,} S2-current mins ({:.2g}s) ".format(e1,e2,len(tmp), t1-t, len(Lcumins[1]), time()-t1))
+        for (i, j) in combinations(range(d), 2):
+            e1, e2 = [ min(P[ind]) for ind in [i,j] ]
+            t = time()
+            tmp = comp_leaves(identify(HT, {e1, e2}), 2, pproc=preprocess)
+            t1 = time()
+            Lcumins = poset_mins_part_update(Lcumins, tmp, 2, inf_hyper)
+            tleaf += t1 - t;  tmin += time() - t1
+            v==2 and print("Add {{{},{}}}: {:.2g}s".format(e1,e2,time()-t))
+            v>2 and print("Add {{{},{}}}: {:,} cands ({:.2g}s); {:,} S2-current mins ({:.2g}s) ".format(e1,e2,len(tmp), t1-t, len(Lcumins[1]), time()-t1))
         v>1 and print("{:,} current mins".format(sum(map(len,Lcumins))))
 
     if 1 in S:
@@ -554,7 +549,7 @@ P = [{i} for i in range(1, d+1)]
 HT = [XT, P]
 
 # Compute upper cover of HT
-mL = upper_covers(HT, {1,2,3,4}, v=2, preprocess = False)
+mL = upper_covers(HT, {1,2,3,4}, v=1, preprocess = False)
 
 # Printing results
 print("Found {} minimal matroids above M:".format(len(mL)))
