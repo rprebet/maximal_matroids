@@ -72,7 +72,7 @@ def solve_int(XT, r):
     (no rk(cyclic flat) < r included)
     """
     flag = False
-    # Fix Case 3
+    # Fix Case 4
     T2, T3 = XT[0].copy(), XT[1].copy()
     for i in range(len(T2)):
         for j in range(i+1,len(T2)):
@@ -95,7 +95,7 @@ def solve_int(XT, r):
         rem_sub(HTbis)
 
     if r == 3:
-        # Fix Case 4
+        # Fix Case 3
         T2, T3 = HTbis
         for i in range(len(T2)):
             for j in range(i+1,len(T2)):
@@ -144,12 +144,13 @@ def detect_mat_case(XT, c, r):
     if c == 3 and r<=3:
         for i in range(len(T2)):
             for j in range(i+1,len(T2)):
-                if len(T2[i] & T2[j]) == 1 and not is_inside(T2[i] | T2[j], T3):
+                if len(T2[i] & T2[j]) > 1:
                     return 3, (i,j)
+
     if c == 4 and r<=3:
         for i in range(len(T2)):
             for j in range(i+1,len(T2)):
-                if len(T2[i] & T2[j]) > 1:
+                if len(T2[i] & T2[j]) == 1 and not is_inside(T2[i] | T2[j], T3):
                     return 4, (i,j)
     return 0, () # No failure found
 
@@ -159,7 +160,7 @@ def detect_mat(XT, r):
     Perform submodularity fail tests
     in a chosen case order
     """
-    seq = [4, 2, 1, 3] # Custom case detection order (heuristic)
+    seq = [3, 2, 1, 4] # Custom case detection order (heuristic)
     for c in seq:
         case, ind = detect_mat_case(XT, c, r)
         if case != 0:
@@ -252,12 +253,6 @@ def comp_leaves(HT, r, pproc=False):
 
         elif c == 3:
             e1, e2 = T2[ind[0]], T2[ind[1]]
-            T3bis = T3.copy() + [e1 | e2]
-            rem_sub([T2, T3bis])
-            Lcand += comp_leaves([[T2, T3bis], P], r, pproc=pproc)
-
-        elif c == 4:
-            e1, e2 = T2[ind[0]], T2[ind[1]]
 
             if r <= 3:
                 T2bis = [ T2[i] for i in range(len(T2)) if i not in ind ]
@@ -268,6 +263,12 @@ def comp_leaves(HT, r, pproc=False):
             if r <= 2:
                 HTid = identify(HT, e1 & e2)
                 Lcand += comp_leaves(HTid, r, pproc=pproc)
+
+        elif c == 4:
+            e1, e2 = T2[ind[0]], T2[ind[1]]
+            T3bis = T3.copy() + [e1 | e2]
+            rem_sub([T2, T3bis])
+            Lcand += comp_leaves([[T2, T3bis], P], r, pproc=pproc)
 
     return Lcand
 
