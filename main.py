@@ -29,7 +29,7 @@ def rem_sub(XT):
     Input: labeled hypergraph XT (2-list of sets)
     Remove redundant subsets from XT
     Criterion 1: sets that are subsets of another set in XT[k]
-    Criterion 2: sets in XT[0] that are one element larger than a set in XT[1]
+    Criterion 2: sets in XT[1] that are one element larger than a set in XT[0]
     This is an in-place function
     """
 
@@ -51,11 +51,11 @@ def rem_sub(XT):
 
     # Criterion 2
     i = 0
-    while i < len(XT[0]):
-        j, n = 0, len(XT[0][i])
-        while j < len(XT[1]):
-            if len(XT[1][j]) + 1 == n and XT[1][j] <= XT[0][i]:
-                XT[0].pop(i)
+    while i < len(XT[1]):
+        j, n = 0, len(XT[1][i])
+        while j < len(XT[0]):
+            if len(XT[0][j]) + 1 == n and XT[0][j] <= XT[1][i]:
+                XT[1].pop(i)
                 i -= 1  # Adjust index since current i was removed
                 break
             j += 1
@@ -68,53 +68,53 @@ def solve_int(XT, r):
             * HTbis (2-list of sets) fixed hypegraph
 
     Fix all submodularity failures that require no choice
-    depending on the situation given by r 
-    (no |circuit|< r included)
+    depending on the situation given by r
+    (no rk(cyclic flat) < r included)
     """
     flag = False
     # Fix Case 3
-    T1, T2 = XT[0].copy(), XT[1].copy()
+    T2, T3 = XT[0].copy(), XT[1].copy()
     for i in range(len(T2)):
         for j in range(i+1,len(T2)):
-            if len(T2[i] & T2[j]) == 1 and not is_inside(T2[i] | T2[j], XT[0]):
+            if len(T2[i] & T2[j]) == 1 and not is_inside(T2[i] | T2[j], XT[1]):
                 flag = True
-                T1.append(T2[i] | T2[j])
-                
-    HTbis = [T1, T2]
+                T3.append(T2[i] | T2[j])
+
+    HTbis = [T2, T3]
     rem_sub(HTbis)
 
     if r >= 3:
         # Fix Case 2
-        T1, T2 = HTbis
-        for i in range(len(T1)):
+        T2, T3 = HTbis
+        for i in range(len(T3)):
             for j in range(len(T2)):
-                if len(T1[i] & T2[j]) > 1 and not T2[j] <= T1[i]:
+                if len(T3[i] & T2[j]) > 1 and not T2[j] <= T3[i]:
                     flag = True
-                    T1 = [ T1[k] for k in range(len(T1)) if k != i ] + [T1[i] | T2[j]]
-        HTbis = [T1, T2]
+                    T3 = [ T3[k] for k in range(len(T3)) if k != i ] + [T3[i] | T2[j]]
+        HTbis = [T2, T3]
         rem_sub(HTbis)
 
     if r == 3:
         # Fix Case 4
-        T1, T2 = HTbis
+        T2, T3 = HTbis
         for i in range(len(T2)):
             for j in range(i+1,len(T2)):
                 if len(T2[i] & T2[j]) > 1:
                     flag = True
                     T2 = [ T2[k] for k in range(len(T2)) if k not in [i,j] ] + [T2[i] | T2[j]]
-        HTbis = [T1, T2]
+        HTbis = [T2, T3]
         rem_sub(HTbis)
 
     if r >= 4:
         # Fix Case 1
-        T1, T2 = HTbis
-        for i in range(len(T1)):
-            for j in range(i+1,len(T1)):
-                S = T1[i] & T1[j]
+        T2, T3 = HTbis
+        for i in range(len(T3)):
+            for j in range(i+1,len(T3)):
+                S = T3[i] & T3[j]
                 if len(S) > 2 and not is_inside(S, T2):
                     flag = True
-                    T1 = [ T1[k] for k in range(len(T1)) if k not in [i,j] ] + [T1[i] | T1[j]]
-        HTbis = [T1, T2]
+                    T3 = [ T3[k] for k in range(len(T3)) if k not in [i,j] ] + [T3[i] | T3[j]]
+        HTbis = [T2, T3]
         rem_sub(HTbis)
 
     return flag, HTbis
@@ -124,27 +124,27 @@ def detect_mat_case(XT, c, r):
     Input: labeled hypergraph XT (2-list of sets), c (int)
     Output: c (int), (i,j) (int, int)
 
-    Perform the test of the case 'c' of submodularity fail 
+    Perform the test of the case 'c' of submodularity fail
     Return indices (i,j) of corresponding 'c'-failure, if found
     If no failure, return '0, ()' (the hypergraph defines a matroid)
     """
 
-    T1, T2 = XT
+    T2, T3 = XT
     if c == 1:
-        for i in range(len(T1)):
-            for j in range(i+1,len(T1)):
-                S = T1[i] & T1[j]
+        for i in range(len(T3)):
+            for j in range(i+1,len(T3)):
+                S = T3[i] & T3[j]
                 if len(S) > 2 and not is_inside(S, T2):
                     return 1, (i,j)
     if c == 2:
-        for i in range(len(T1)):
+        for i in range(len(T3)):
             for j in range(len(T2)):
-                if len(T1[i] & T2[j]) > 1 and not T2[j] <= T1[i]:
+                if len(T3[i] & T2[j]) > 1 and not T2[j] <= T3[i]:
                     return 2, (i,j)
     if c == 3 and r<=3:
         for i in range(len(T2)):
             for j in range(i+1,len(T2)):
-                if len(T2[i] & T2[j]) == 1 and not is_inside(T2[i] | T2[j], T1):
+                if len(T2[i] & T2[j]) == 1 and not is_inside(T2[i] | T2[j], T3):
                     return 3, (i,j)
     if c == 4 and r<=3:
         for i in range(len(T2)):
@@ -156,7 +156,7 @@ def detect_mat_case(XT, c, r):
 def detect_mat(XT, r):
     """
     Input: labeled hypergraph XT (2-list of sets)
-    Perform submodularity fail tests 
+    Perform submodularity fail tests
     in a chosen case order
     """
     seq = [4, 2, 1, 3] # Custom case detection order (heuristic)
@@ -180,16 +180,16 @@ def replace(L, P, smin):
     Lrep = { p:Prep[i] for i in range(len(P)) for p in P[i]}
     # Contruct new hypergraph L1 based on the dict Lrep (repetition is avoided by set structure)
     L1 = [ { Lrep[j] for j in l } for l in L ]
-    return [ l for l in L1 if len(l)>=smin ] 
+    return [ l for l in L1 if len(l)>=smin ]
 
 def identify(HT, l):
     """
     Input:  * HT = (XT, P), labeled hypergraph HT (2-list of sets), partition P (list of sets);
             * points to identify l (set)
-    Identify all elements of L in HT (make them double points). 
+    Identify all elements of L in HT (make them double points).
     Call 'replace' on the corresponding new partition
     """
-    # Construct the new partition P1 
+    # Construct the new partition P1
     # S is the eq. class of elements in L based on existing partition P
     XT, P = HT
     P1, S = [], set({})
@@ -199,8 +199,8 @@ def identify(HT, l):
         else:
             P1.append(p)
     P1.append(S)
-    # Perform replacement based on P1 using 'replace', with smin=(label+1)
-    XT1 = [ replace(XT[i], P1, 4-i) for i in range(len(XT)) ]
+    # Perform replacement based on P1 using 'replace', with smin=type+1
+    XT1 = [ replace(XT[i], P1, 3+i) for i in range(len(XT)) ]
     return [XT1, P1]
 
 
@@ -222,29 +222,29 @@ def comp_leaves(HT, r, pproc=False):
       Lcand.append([XT, P])
 
     else:
-        T1,  T2 = XT
+        T2,  T3 = XT
         if c == 1:
-            e1, e2 = T1[ind[0]], T1[ind[1]]
+            e1, e2 = T3[ind[0]], T3[ind[1]]
 
             if r <= 4:
-                T1bis = [ T1[i] for i in range(len(T1)) if i not in ind ]
-                T1bis.append(e1 | e2)
-                rem_sub([T1bis, T2])
-                Lcand += comp_leaves([[T1bis, T2], P], r, pproc=pproc)
+                T3bis = [ T3[i] for i in range(len(T3)) if i not in ind ]
+                T3bis.append(e1 | e2)
+                rem_sub([T2, T3bis])
+                Lcand += comp_leaves([[T2, T3bis], P], r, pproc=pproc)
 
             if r <= 3:
                 T2bis = T2.copy() + [e1 & e2]
-                rem_sub([T1, T2bis])
-                Lcand += comp_leaves([[T1, T2bis], P], r, pproc=pproc)
+                rem_sub([T2bis, T3])
+                Lcand += comp_leaves([[T2bis, T3], P], r, pproc=pproc)
 
         elif c == 2:
-            e1, e2 = T1[ind[0]], T2[ind[1]]
+            e1, e2 = T3[ind[0]], T2[ind[1]]
 
             if r <= 4:
-                T1bis = [ T1[i] for i in range(len(T1)) if i != ind[0] ]
-                T1bis.append(e1 | e2)
-                rem_sub([T1bis, T2])
-                Lcand += comp_leaves([[T1bis, T2], P], r, pproc=pproc)
+                T3bis = [ T3[i] for i in range(len(T3)) if i != ind[0] ]
+                T3bis.append(e1 | e2)
+                rem_sub([T2, T3bis])
+                Lcand += comp_leaves([[T2, T3bis], P], r, pproc=pproc)
 
             if r <= 2:
                 HTid = identify(HT, e1 & e2)
@@ -252,9 +252,9 @@ def comp_leaves(HT, r, pproc=False):
 
         elif c == 3:
             e1, e2 = T2[ind[0]], T2[ind[1]]
-            T1bis = T1.copy() + [e1 | e2]
-            rem_sub([T1bis, T2])
-            Lcand += comp_leaves([[T1bis, T2], P], r, pproc=pproc)
+            T3bis = T3.copy() + [e1 | e2]
+            rem_sub([T2, T3bis])
+            Lcand += comp_leaves([[T2, T3bis], P], r, pproc=pproc)
 
         elif c == 4:
             e1, e2 = T2[ind[0]], T2[ind[1]]
@@ -262,8 +262,8 @@ def comp_leaves(HT, r, pproc=False):
             if r <= 3:
                 T2bis = [ T2[i] for i in range(len(T2)) if i not in ind ]
                 T2bis.append(e1 | e2)
-                rem_sub([[T1, T2bis]])
-                Lcand += comp_leaves([[T1, T2bis], P], r, pproc=pproc)
+                rem_sub([[T2bis, T3]])
+                Lcand += comp_leaves([[T2bis, T3], P], r, pproc=pproc)
 
             if r <= 2:
                 HTid = identify(HT, e1 & e2)
@@ -286,7 +286,7 @@ def remove(HT, e):
         for j in range(2):
             for l in XT[j]:
                 if e in l:
-                    if len(l) > 4-j:
+                    if len(l) > 3+j:
                         XT1[j].append(l - {e})
                 else:
                     XT1[j].append(l)
@@ -327,13 +327,13 @@ def inf_subs(P1,P2):
             return False
     return True
 
-def test_T1(l, X2):
-    if is_inside(l, X2[0]):
+def test_T3(l, X2):
+    if is_inside(l, X2[1]):
         return True
 
     l1 = [ l - {e} for e in l ]
     for ll in l1:
-        if is_inside(ll, X2[1]):
+        if is_inside(ll, X2[0]):
             return True
 
     return False
@@ -361,13 +361,13 @@ def inf_hyper(H1, H2):
         return False
 
     # We identify 2-pts of H2 in H1
-    X1bis = [ replace(X1[i], P2, 4-i) for i in range(2) ]
-    if not inf_subs(X1bis[1], X2[1]):
+    X1bis = [ replace(X1[i], P2, 3+i) for i in range(2) ]
+    if not inf_subs(X1bis[0], X2[0]):
         # not all T2-sets of H1 are a T2-set of H2
         return False
 
-    for l in X1bis[0]:
-        if not test_T1(l, X2):
+    for l in X1bis[1]:
+        if not test_T3(l, X2):
             return False
 
     return True
@@ -432,8 +432,8 @@ def poset_mins_part_update(LX, Y, ind, f):
 
 
 def upper_covers(HT, S, v=1, preprocess = False):
-    # H = [M, P]
-    # M=[M3,M2] is a rank 4 matroid given by its type 3 and 2 sets
+    # H = [X, P]
+    # X=[T2, T3] is a labeled hypergraph given by its type 2 and 3, representing a rank 4 simple matroid
     # P <= {1,...,d} is the partition support of M
 
     XT, P = HT
@@ -450,10 +450,10 @@ def upper_covers(HT, S, v=1, preprocess = False):
                 for k in range(j+1, d):
                     for l in range(k+1, d):
                         e1, e2, e3, e4 = [ min(P[ind]) for ind in [i,j,k,l] ]
-                        tmp = {e1,e2,e3,e4}
-                        if not inter_size(tmp, XT[1],3) and not is_inside(tmp, XT[0]):
+                        tmp = {e1, e2, e3, e4}
+                        if not inter_size(tmp, XT[0], 3) and not is_inside(tmp, XT[1]):
                             t = time()
-                            tmp = comp_leaves([ [XT[0]+[tmp], XT[1]] , P], 4, pproc=preprocess)
+                            tmp = comp_leaves([ [XT[0], XT[1]+[tmp]] , P], 4, pproc=preprocess)
                             t1 = time()
                             Lcumins = poset_mins_part_update(Lcumins, tmp, 4, inf_hyper)
                             tleaf += t1 - t;  tmin += time() - t1
@@ -467,9 +467,9 @@ def upper_covers(HT, S, v=1, preprocess = False):
                 for k in range(j+1, d):
                     e1, e2, e3 = [ min(P[ind]) for ind in [i,j,k] ]
                     lijk = {e1, e2, e3}
-                    if not is_inside(lijk, XT[1]):
+                    if not is_inside(lijk, XT[0]):
                         t = time()
-                        tmp = comp_leaves([ [ XT[0], XT[1]+[lijk]] , P], 3, pproc=preprocess)
+                        tmp = comp_leaves([ [ XT[0]+[lijk], XT[1]] , P], 3, pproc=preprocess)
                         t1 = time()
                         Lcumins = poset_mins_part_update(Lcumins, tmp, 3, inf_hyper)
                         tleaf += t1 - t;  tmin += time() - t1
@@ -508,22 +508,24 @@ def upper_covers(HT, S, v=1, preprocess = False):
 
 # Data structure translation
 def cyclic_to_partition(CF, d):
+    # Compute a reduced labeled hypergraph associated to CF
     P = [{i} for i in range(1, d+1)]
-    HT = [[CF[3].copy(), CF[2].copy()], P]
+    HT = [[CF[2].copy(), CF[3].copy()], P]
     for e in CF[0][0]:
-        HT = remove(HT, e)
+        HT = remove(HT, e) # Remove loops
     for L in CF[1]:
-        HT = identify(HT, L)
+        HT = identify(HT, L) # Identify double points
     return HT
 
 def partition_to_cyclic(HT, d):
+    # Inverse the reduction of a reduced labeled hypergraph
     CF = []
     XT, P = HT
     loops = set(i for i in range(1, d+1)).difference(supp(P))
-    CF.append([{i for i in loops}]  if len(loops)>0 else [])
-    CF.append([ {i for i in p} for p in P if len(p)>1 ])
-    CF.append(XT[1])
-    CF.append(XT[0])
+    CF.append([{i for i in loops}]  if len(loops)>0 else []) # Type 0
+    CF.append([ {i for i in p} for p in P if len(p)>1 ]) # Type 1
+    CF.append(XT[0]) # Type 2
+    CF.append(XT[1]) # Type 3
     return CF
 
 # Display function
@@ -535,8 +537,8 @@ def printmat(H, d, pref=""):
     loops = set(i for i in range(1, d+1)).difference(supp(P))
     len(loops)>0 and Ci.append("T0: {" + ",".join( str(i) for i in loops) + "}")
     Ci.append("T1: " + " ".join(( "{"+",".join(str(i) for i in p)+"}" for p in P if len(p)>1 )))
-    Ci.append("T2: " + " ".join(str(l).replace(" ", "") for l in X[1]))
-    Ci.append("T3: " + " ".join(str(l).replace(" ", "") for l in X[0]))
+    Ci.append("T2: " + " ".join(str(l).replace(" ", "") for l in X[0]))
+    Ci.append("T3: " + " ".join(str(l).replace(" ", "") for l in X[1]))
     Ci = [ c for c in Ci if len(c) > 4]
     print(pref+" "+" ; ".join(Ci))
 
@@ -545,7 +547,7 @@ def printmat(H, d, pref=""):
 
 # Vamos example
 ### Data ###
-XT = [[{1, 2, 3, 4}, {3, 4, 5, 6}, {5, 6, 7, 8}, {1, 2, 7, 8},{3, 4, 7, 8}],[]]
+XT = [[], [{1, 2, 3, 4}, {3, 4, 5, 6}, {5, 6, 7, 8}, {1, 2, 7, 8},{3, 4, 7, 8}]]
 d = 11
 P = [{i} for i in range(1, d+1)]
 HT = [XT, P]
