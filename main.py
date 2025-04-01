@@ -229,11 +229,12 @@ def comp_leaves(HT, r, pproc=False):
             if r <= 4:
                 T1bis = [ T1[i] for i in range(len(T1)) if i not in ind ]
                 T1bis.append(e1 | e2)
+                rem_sub([T1bis, T2])
                 Lcand += comp_leaves([[T1bis, T2], P], r, pproc=pproc)
 
             if r <= 3:
-                T2bis = T2.copy()
-                T2bis.append(e1 & e2)
+                T2bis = T2.copy() + [e1 & e2]
+                rem_sub([T1, T2bis])
                 Lcand += comp_leaves([[T1, T2bis], P], r, pproc=pproc)
 
         elif c == 2:
@@ -242,6 +243,7 @@ def comp_leaves(HT, r, pproc=False):
             if r <= 4:
                 T1bis = [ T1[i] for i in range(len(T1)) if i != ind[0] ]
                 T1bis.append(e1 | e2)
+                rem_sub([T1bis, T2])
                 Lcand += comp_leaves([[T1bis, T2], P], r, pproc=pproc)
 
             if r <= 2:
@@ -250,7 +252,8 @@ def comp_leaves(HT, r, pproc=False):
 
         elif c == 3:
             e1, e2 = T2[ind[0]], T2[ind[1]]
-            T1bis = T1.copy() + [e1.union(e2)]
+            T1bis = T1.copy() + [e1 | e2]
+            rem_sub([T1bis, T2])
             Lcand += comp_leaves([[T1bis, T2], P], r, pproc=pproc)
 
         elif c == 4:
@@ -259,6 +262,7 @@ def comp_leaves(HT, r, pproc=False):
             if r <= 3:
                 T2bis = [ T2[i] for i in range(len(T2)) if i not in ind ]
                 T2bis.append(e1 | e2)
+                rem_sub([[T1, T2bis]])
                 Lcand += comp_leaves([[T1, T2bis], P], r, pproc=pproc)
 
             if r <= 2:
@@ -541,7 +545,7 @@ def printmat(H, d, pref=""):
 
 # Vamos example
 ### Data ###
-XT = [[{1, 2, 3, 4}, {3, 4, 5, 6}, {5, 6, 7, 8}, {1, 2, 7, 8},{3, 4, 7, 8},{1,2,5,6},{1,3,5,7},{8,1,3,6},{8,1,4,5},{1,4,6,7},{8,2,3,5},{2,3,6,7}],[]]
+XT = [[{1, 2, 3, 4}, {3, 4, 5, 6}, {5, 6, 7, 8}, {1, 2, 7, 8},{3, 4, 7, 8}],[]]
 d = 8
 P = [{i} for i in range(1, d+1)]
 HT = [XT, P]
