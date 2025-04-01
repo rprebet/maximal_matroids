@@ -432,6 +432,26 @@ def poset_mins_part_update(LX, Y, ind, f):
 
     return Lmins
 
+def redund_edge(XT, x, i):
+    # Test whether the edge x is redundant in XT
+    if i <= 2:
+        return False # No loop nor 2-pts
+    if i == 3:
+        return is_inside(x, XT[0])
+    if i == 4:
+        return is_inside(x, XT[1]) or inter_size(x, XT[0], 3)
+
+def add_edge(HT, x, i):
+    # Add a non-redundant edge x of Type(i-1) to HT
+    # if i<=2, reduce the lab hypergraph
+    if i == 1:
+        return remove(HT, min(P[i]))
+    if i == 2:
+        return identify(HT, x)
+    if i == 3:
+        return [ [XT[0]+[x], XT[1]] , P]
+    if i == 4:
+        return [ [XT[0], XT[1]+[x]] , P]
 
 def upper_covers(HT, S, v=1, preprocess = False):
     # H = [X, P]
@@ -446,55 +466,19 @@ def upper_covers(HT, S, v=1, preprocess = False):
 
     Lcumins = [ [] for _ in range(4) ]
 
-    if 4 in S:
-        for (i, j, k, l) in combinations(range(d), 4):
-            e1, e2, e3, e4 = [ min(P[ind]) for ind in [i,j,k,l] ]
-            tmp = {e1, e2, e3, e4}
-            if not inter_size(tmp, XT[0], 3) and not is_inside(tmp, XT[1]):
+    for i in sorted(S, reverse=True): # We start by highest Si, being smallest
+        for Lind in combinations(range(d), i): # Take a circuit of size i
+            x = { min(P[ind]) for ind in Lind } # Its representative
+            if not redund_edge(XT, x, i): # Check x is not redundant in XT
                 t = time()
-                tmp = comp_leaves([ [XT[0], XT[1]+[tmp]] , P], 4, pproc=preprocess)
+                cands = comp_leaves(add_edge(HT, x, i), i, pproc=preprocess) if i>1 else [add_edge(HT, x, 1)]
                 t1 = time()
-                Lcumins = poset_mins_part_update(Lcumins, tmp, 4, inf_hyper)
+                Lcumins = poset_mins_part_update(Lcumins, cands, i, inf_hyper)
                 tleaf += t1 - t;  tmin += time() - t1
-                v==2 and print("Add {{{},{},{},{}}}: {:.2g}s".format(e1,e2,e3,e4,time()-t))
-                v>2 and print("Add {{{},{},{},{}}}: {:,} cands ({:.2g}s); {:,} S4-current mins ({:.2g}s) ".format(e1,e2,e3,e4,len(tmp), t1-t, len(Lcumins[3]), time()-t1))
+                v==2 and print("Add {}: {:.2g}s".format(str(x).replace(" ", ""),time()-t))
+                v>2 and print("Add {}: {:,} cands ({:.2g}s); {:,} S{}-current mins ({:.2g}s) ".format(str(x).replace(" ", ""),len(cands), t1-t, len(Lcumins[i-1]), i, time()-t1))
         v>1 and print("{:,} current mins".format(sum(map(len,Lcumins))))
 
-    if 3 in S:
-        for (i, j, k) in combinations(range(d), 3):
-            e1, e2, e3 = [ min(P[ind]) for ind in [i,j,k] ]
-            lijk = {e1, e2, e3}
-            if not is_inside(lijk, XT[0]):
-                t = time()
-                tmp = comp_leaves([ [ XT[0]+[lijk], XT[1]] , P], 3, pproc=preprocess)
-                t1 = time()
-                Lcumins = poset_mins_part_update(Lcumins, tmp, 3, inf_hyper)
-                tleaf += t1 - t;  tmin += time() - t1
-                v==2 and print("Add {{{},{},{}}}: {:.2g}s".format(e1,e2,e3,time()-t))
-                v>2 and print("Add {{{},{},{}}}: {:,} cands ({:.2g}s); {:,} S3-current mins ({:.2g}s) ".format(e1,e2,e3,len(tmp), t1-t, len(Lcumins[2]), time()-t1))
-        v>1 and print("{:,} current mins".format(sum(map(len,Lcumins))))
-
-    if 2 in S:
-        for (i, j) in combinations(range(d), 2):
-            e1, e2 = [ min(P[ind]) for ind in [i,j] ]
-            t = time()
-            tmp = comp_leaves(identify(HT, {e1, e2}), 2, pproc=preprocess)
-            t1 = time()
-            Lcumins = poset_mins_part_update(Lcumins, tmp, 2, inf_hyper)
-            tleaf += t1 - t;  tmin += time() - t1
-            v==2 and print("Add {{{},{}}}: {:.2g}s".format(e1,e2,time()-t))
-            v>2 and print("Add {{{},{}}}: {:,} cands ({:.2g}s); {:,} S2-current mins ({:.2g}s) ".format(e1,e2,len(tmp), t1-t, len(Lcumins[1]), time()-t1))
-        v>1 and print("{:,} current mins".format(sum(map(len,Lcumins))))
-
-    if 1 in S:
-        t = time()
-        tmp = [ remove(HT, min(P[i])) for i in range(d) ]
-        t1 = time()
-        Lcumins = poset_mins_part_update(Lcumins, tmp, 1, inf_hyper)
-        v==2 and print("Add loops: {:.2g}s".format(time()-t))
-        v>2 and print("Add loops: {:,} cands ({:.2g}s); {:,} S1-current mins ({:.2g}s) ".format(len(tmp), t1-t, len(Lcumins[0]), time()-t1))
-        tleaf += t1 - t;  tmin += time() - t1
-        v>1 and print("{:,} current mins".format(sum(map(len,Lcumins))))
 
     v>0 and print("Time elapsed {:.2f}s (total) ; {:.2f}s (cand) ; {:.2f}s (mins)\n".format(tleaf+tmin, tleaf, tmin))
     cumins = []
@@ -544,7 +528,7 @@ def printmat(H, d, pref=""):
 # Vamos example
 ### Data ###
 XT = [[], [{1, 2, 3, 4}, {3, 4, 5, 6}, {5, 6, 7, 8}, {1, 2, 7, 8},{3, 4, 7, 8}]]
-d = 11
+d = 9
 P = [{i} for i in range(1, d+1)]
 HT = [XT, P]
 
