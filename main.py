@@ -88,7 +88,7 @@ def solve_int(XT, r):
         T1, T2 = HTbis
         for i in range(len(T1)):
             for j in range(len(T2)):
-                if len(T1[i] & T2[j]) > 1 and not is_inside(T1[i] | T2[j], T1):
+                if len(T1[i] & T2[j]) > 1 and not T2[j] <= T1[i]:
                     flag = True
                     T1 = [ T1[k] for k in range(len(T1)) if k != i ] + [T1[i] | T2[j]]
         HTbis = [T1, T2]
@@ -139,7 +139,7 @@ def detect_mat_case(XT, c):
     if c == 2:
         for i in range(len(T1)):
             for j in range(len(T2)):
-                if len(T1[i] & T2[j]) > 1 and not is_inside(T1[i] | T2[j], T1):
+                if len(T1[i] & T2[j]) > 1 and not T2[j] <= T1[i]:
                     return 2, (i,j)
     if c == 3:
         for i in range(len(T2)):
@@ -205,7 +205,7 @@ def identify(HT, l):
 
 
 def comp_leaves(HT, r, pproc=False):
-    # no  |circuit|< r included
+    # no  cyclic flat of rank < r included
     XT, P = HT
     XT = [XT[0].copy(), XT[1].copy()]
     Lcand = []
@@ -219,13 +219,11 @@ def comp_leaves(HT, r, pproc=False):
     c, ind = detect_mat(XT)
     if c == 0:
       # This rpz a matroid
-      #print("We have a matroid!")
       Lcand.append([XT, P])
 
     else:
         T1,  T2 = XT
         if c == 1:
-            #print("Case: ", c, " Ind:", ind)
             e1, e2 = T1[ind[0]], T1[ind[1]]
 
             if r <= 4:
@@ -239,7 +237,6 @@ def comp_leaves(HT, r, pproc=False):
                 Lcand += comp_leaves([[T1, T2bis], P], r, pproc=pproc)
 
         elif c == 2:
-            #print("Case: ", c, " Ind:", ind)
             e1, e2 = T1[ind[0]], T2[ind[1]]
 
             if r <= 4:
@@ -257,7 +254,6 @@ def comp_leaves(HT, r, pproc=False):
             Lcand += comp_leaves([[T1bis, T2], P], r, pproc=pproc)
 
         elif c == 4:
-            #print("Case: ", c, " Ind:", ind)
             e1, e2 = T2[ind[0]], T2[ind[1]]
 
             if r <= 3:
