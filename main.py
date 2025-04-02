@@ -168,7 +168,22 @@ def detect_mat(XT, r):
             return case, ind
     return 0, ()
 
-def replace(L, P, smin):
+def replace(XT, P):
+    """
+    Input: labeled hypergraph XT (2-list of sets), partition P (list of sets)
+    Output: labeled hypergraph XT1 (2-list of sets)
+
+    Replace elements in sets of each XT[i] based on the equivalence relation
+    defined by P, taking minimal element as representative.
+    Return in XT1, only resulting sets of size >= 3+i=(Type+1)
+    """
+    # Construct a dict Lrep to associate each element to its minimal representative
+    Lrep = { elem: min(p) for p in P for elem in p}
+    # Contruct new hypergraph L1 based on the dict Lrep (repetition is avoided by set structure)
+    XT1 = [ [ { Lrep[j] for j in l } for l in L ] for L in XT ]
+    return [[l for l in L if len(l) >= 3 + i] for i, L in enumerate(XT1)]
+
+def replace_old(L, P, smin):
     """
     Input: hypergraph L (list of sets), partition P (list of sets), smin (int)
     Output: hypergraph L1 (list of sets)
@@ -201,9 +216,10 @@ def identify(HT, l):
         else:
             P1.append(p)
     P1.append(S)
-    # Perform replacement based on P1 using 'replace', with smin=type+1
-    XT1 = [ replace(XT[i], P1, 3+i) for i in range(len(XT)) ]
+    # Perform replacement based on P1 using 'replace'
+    XT1 = replace(XT, P1)
     return [XT1, P1]
+
 
 
 def comp_leaves(HT, r, pproc=False):
@@ -314,7 +330,7 @@ def remove(HT, e):
 def supp(L):
     S = set()
     for l in L:
-        S = S.union(l)
+        S.update(l)
     return S
 
 def inf_subs(P1,P2):
@@ -363,7 +379,7 @@ def inf_hyper(H1, H2):
         return False
 
     # We identify 2-pts of H2 in H1
-    X1bis = [ replace(X1[i], P2, 3+i) for i in range(2) ]
+    X1bis = replace(X1, P2)
     if not inf_subs(X1bis[0], X2[0]):
         # not all T2-sets of H1 are a T2-set of H2
         return False
@@ -528,15 +544,16 @@ def printmat(H, d, pref=""):
 # Vamos example
 ### Data ###
 XT = [[], [{1, 2, 3, 4}, {3, 4, 5, 6}, {5, 6, 7, 8}, {1, 2, 7, 8},{3, 4, 7, 8}]]
-d = 9
+d = 12
 P = [{i} for i in range(1, d+1)]
 HT = [XT, P]
 
+import cProfile
 # Compute upper cover of HT
-mL = upper_covers(HT, {1,2,3,4}, v=1, preprocess = False)
+cProfile.run('mL = upper_covers(HT, {1,2,3,4}, v=1, preprocess = False)')
 
 # Printing results
 print("Found {} minimal matroids above M:".format(len(mL)))
-for i,l in enumerate(mL):
-    printmat(l, d, pref="M{: <{width}}|".format(i+1, width=len(str(len(mL)))))
+#for i,l in enumerate(mL):
+#    printmat(l, d, pref="M{: <{width}}|".format(i+1, width=len(str(len(mL)))))
 
