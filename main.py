@@ -25,42 +25,43 @@ def inter_size(s, L, n):
             return True
     return False
 
+
+def diff_size(s, L, n):
+    """
+    Input: vertex s (set); hypergraph L (list of sets); n (int)
+    Check if there is l in L s.t. (s - l) has size == n
+    (this also means that a (|s|-1)-subset of s is contained in l)
+    """
+    for l in L:
+        if len(s - l) == n:
+            return True
+    return False
+
+from copy import deepcopy
+
 def rem_sub(XT):
     """
     Input: labeled hypergraph XT (2-list of sets)
-    Remove redundant subsets from XT
-    Criterion 1: sets that are subsets of another set in XT[k]
-    Criterion 2: sets in XT[1] that are one element larger than a set in XT[0]
-    This is an in-place function
+    Remove redundant subsets from XT to satisfy the
+    axioms of labeled hypergraphs.
     """
+    XT_new = [XT[0].copy(), XT[1].copy()]  # Avoid modifying the input
 
-    # Criterion 1
-    for k in range(len(XT)):
-        i = 0
-        while i < len(XT[k]):
-            j = i + 1
-            while j < len(XT[k]):
-                if XT[k][i] <= XT[k][j]:  # If i-th set is a subset of j-th, remove it
-                    XT[k].pop(i)
-                    i -= 1  # Adjust index since current i was removed
-                    break
-                elif XT[k][j] <= XT[k][i]:  # If j-th set is a subset of i-th, remove j-th
-                    XT[k].pop(j)
-                else:
-                    j += 1
-            i += 1
+    # Criterion 1: Remove sets that are subsets of another set in XT[k]
+    for k in range(len(XT_new)):
+        XT_new[k] = [
+            s for i, s in enumerate(XT_new[k]) 
+            if not any(s <= XT_new[k][j] for j in range(len(XT_new[k])) if i != j)
+        ]
 
-    # Criterion 2
-    i = 0
-    while i < len(XT[1]):
-        j, n = 0, len(XT[1][i])
-        while j < len(XT[0]):
-            if len(XT[0][j]) + 1 == n and XT[0][j] <= XT[1][i]:
-                XT[1].pop(i)
-                i -= 1  # Adjust index since current i was removed
-                break
-            j += 1
-        i += 1
+    # Criterion 2: Remove sets in XT[1] that are one element larger than a set in XT[0]
+    if len(XT_new) > 1:
+        XT_new[1] = [
+            s for s in XT_new[1] 
+            if not any(len(t) + 1 == len(s) and t <= s for t in XT_new[0])
+        ]
+
+    return XT_new
 
 def solve_int(XT, r):
     """
@@ -73,52 +74,45 @@ def solve_int(XT, r):
     (no rk(cyclic flat) < r included)
     """
     flag = False
-    # Fix Case 4
     T2, T3 = XT[0].copy(), XT[1].copy()
+    # Fix Case 4
     for i in range(len(T2)):
         for j in range(i+1,len(T2)):
             if len(T2[i] & T2[j]) == 1 and not is_inside(T2[i] | T2[j], XT[1]):
                 flag = True
                 T3.append(T2[i] | T2[j])
 
-    HTbis = [T2, T3]
-    rem_sub(HTbis)
+    T2, T3 = rem_sub([T2, T3])
 
     if r >= 3:
         # Fix Case 2
-        T2, T3 = HTbis
         for i in range(len(T3)):
             for j in range(len(T2)):
                 if len(T3[i] & T2[j]) > 1 and not T2[j] <= T3[i]:
                     flag = True
                     T3 = [ T3[k] for k in range(len(T3)) if k != i ] + [T3[i] | T2[j]]
-        HTbis = [T2, T3]
-        rem_sub(HTbis)
+        T2, T3 = rem_sub([T2, T3])
 
     if r == 3:
         # Fix Case 3
-        T2, T3 = HTbis
         for i in range(len(T2)):
             for j in range(i+1,len(T2)):
                 if len(T2[i] & T2[j]) > 1:
                     flag = True
                     T2 = [ T2[k] for k in range(len(T2)) if k not in [i,j] ] + [T2[i] | T2[j]]
-        HTbis = [T2, T3]
-        rem_sub(HTbis)
+        T2, T3 = rem_sub([T2, T3])
 
     if r >= 4:
         # Fix Case 1
-        T2, T3 = HTbis
         for i in range(len(T3)):
             for j in range(i+1,len(T3)):
                 S = T3[i] & T3[j]
                 if len(S) > 2 and not is_inside(S, T2):
                     flag = True
                     T3 = [ T3[k] for k in range(len(T3)) if k not in [i,j] ] + [T3[i] | T3[j]]
-        HTbis = [T2, T3]
-        rem_sub(HTbis)
+        T2, T3 = rem_sub([T2, T3])
 
-    return flag, HTbis
+    return flag, [T2, T3]
 
 def detect_mat_case(XT, c, r):
     """
@@ -183,22 +177,6 @@ def replace(XT, P):
     XT1 = [ [ { Lrep[j] for j in l } for l in L ] for L in XT ]
     return [[l for l in L if len(l) >= 3 + i] for i, L in enumerate(XT1)]
 
-def replace_old(L, P, smin):
-    """
-    Input: hypergraph L (list of sets), partition P (list of sets), smin (int)
-    Output: hypergraph L1 (list of sets)
-
-    Replace elements in sets of L base on the equivalence relation
-    defined by P, taking minimal element as representative.
-    Return in L1, only resulting sets of size >= smin (=[label of L]+1)
-    """
-    # Construct a dict Lrep to associate each element to its minimal representative
-    Prep = [ min(p) for p in P ]
-    Lrep = { p:Prep[i] for i in range(len(P)) for p in P[i]}
-    # Contruct new hypergraph L1 based on the dict Lrep (repetition is avoided by set structure)
-    L1 = [ { Lrep[j] for j in l } for l in L ]
-    return [ l for l in L1 if len(l)>=smin ]
-
 def identify(HT, l):
     """
     Input:  * HT = (XT, P), labeled hypergraph HT (2-list of sets), partition P (list of sets);
@@ -228,7 +206,8 @@ def comp_leaves(HT, r, pproc=False):
     XT = [XT[0].copy(), XT[1].copy()]
     Lcand = []
 
-    rem_sub(XT)
+    # We first reduce the hypergraph as we added some edges
+    XT = rem_sub(XT)
     if pproc:
         flag = True
         while flag:
@@ -247,12 +226,10 @@ def comp_leaves(HT, r, pproc=False):
             if r <= 4:
                 T3bis = [ T3[i] for i in range(len(T3)) if i not in ind ]
                 T3bis.append(e1 | e2)
-                rem_sub([T2, T3bis])
                 Lcand += comp_leaves([[T2, T3bis], P], r, pproc=pproc)
 
             if r <= 3:
                 T2bis = T2.copy() + [e1 & e2]
-                rem_sub([T2bis, T3])
                 Lcand += comp_leaves([[T2bis, T3], P], r, pproc=pproc)
 
         elif c == 2:
@@ -261,7 +238,6 @@ def comp_leaves(HT, r, pproc=False):
             if r <= 4:
                 T3bis = [ T3[i] for i in range(len(T3)) if i != ind[0] ]
                 T3bis.append(e1 | e2)
-                rem_sub([T2, T3bis])
                 Lcand += comp_leaves([[T2, T3bis], P], r, pproc=pproc)
 
             if r <= 2:
@@ -274,7 +250,6 @@ def comp_leaves(HT, r, pproc=False):
             if r <= 3:
                 T2bis = [ T2[i] for i in range(len(T2)) if i not in ind ]
                 T2bis.append(e1 | e2)
-                rem_sub([[T2bis, T3]])
                 Lcand += comp_leaves([[T2bis, T3], P], r, pproc=pproc)
 
             if r <= 2:
@@ -284,7 +259,6 @@ def comp_leaves(HT, r, pproc=False):
         elif c == 4:
             e1, e2 = T2[ind[0]], T2[ind[1]]
             T3bis = T3.copy() + [e1 | e2]
-            rem_sub([T2, T3bis])
             Lcand += comp_leaves([[T2, T3bis], P], r, pproc=pproc)
 
     return Lcand
@@ -328,10 +302,7 @@ def remove(HT, e):
     return [XT1, P1]
 
 def supp(L):
-    S = set()
-    for l in L:
-        S.update(l)
-    return S
+    return set.union(*L) if L else set()
 
 def inf_subs(P1,P2):
     # Test whether every elt of P1 is inside an elt of P2
@@ -348,12 +319,8 @@ def inf_subs(P1,P2):
 def test_T3(l, X2):
     if is_inside(l, X2[1]):
         return True
-
-    l1 = [ l - {e} for e in l ]
-    for ll in l1:
-        if is_inside(ll, X2[0]):
-            return True
-
+    if diff_size(l, X2[0], 1):
+        return True
     return False
 
 def inf_hyper(H1, H2):
@@ -544,16 +511,17 @@ def printmat(H, d, pref=""):
 # Vamos example
 ### Data ###
 XT = [[], [{1, 2, 3, 4}, {3, 4, 5, 6}, {5, 6, 7, 8}, {1, 2, 7, 8},{3, 4, 7, 8}]]
-d = 12
+d = 9
 P = [{i} for i in range(1, d+1)]
 HT = [XT, P]
 
-import cProfile
+#import cProfile
 # Compute upper cover of HT
-cProfile.run('mL = upper_covers(HT, {1,2,3,4}, v=1, preprocess = False)')
+#cProfile.run('mL = upper_covers(HT, {1,2,3,4}, v=1, preprocess = False)')
+mL = upper_covers(HT, {1,2,3,4}, v=1, preprocess = False)
 
 # Printing results
 print("Found {} minimal matroids above M:".format(len(mL)))
-#for i,l in enumerate(mL):
-#    printmat(l, d, pref="M{: <{width}}|".format(i+1, width=len(str(len(mL)))))
+for i,l in enumerate(mL):
+    printmat(l, d, pref="M{: <{width}}|".format(i+1, width=len(str(len(mL)))))
 
