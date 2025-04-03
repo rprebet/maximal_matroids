@@ -1,4 +1,4 @@
-from hypergraph import supp, inf_subs, replace, remove, is_inside, diff_size
+from src.hypergraph import supp, inf_subs, replace, remove, is_inside, diff_size
 
 def test_T3(l, X2):
     if is_inside(l, X2[1]):

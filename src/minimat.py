@@ -1,8 +1,9 @@
 from time import time
 from itertools import combinations
 
-from hypergraph import *
-from comparison import *
+from src.hypergraph import *
+from src.comparison import *
+from src.datamat import *
 
 def solve_int(XT, r):
     """
@@ -187,13 +188,10 @@ def add_edge(HT, x, i):
     if i == 4:
         return [ [HT[0][0], HT[0][1]+[x]] , HT[1]]
 
-def upper_covers(HT, S, v=1, preprocess = False):
-    # H = [X, P]
-    # X=[T2, T3] is a labeled hypergraph given by its type 2 and 3, representing a rank 4 simple matroid
-    # P <= {1,...,d} is the partition support of M
-
+def upper_covers(CF, d, S=[1,2,3,4], v=1, preprocess = False):
+    # CF[i] are the cyclic flats of rk i of the input matroid M ##
+    HT = cyclic_to_partition(CF,d)
     XT, P = HT
-    d = len(P)
     tleaf, tmin = 0, 0
 
     v>0 and print("Compute minimals in " + ", ".join(["S{}(M)".format(i) for i in S]))
@@ -217,5 +215,5 @@ def upper_covers(HT, S, v=1, preprocess = False):
     v>0 and print("Time elapsed {:.2f}s (total) ; {:.2f}s (cand) ; {:.2f}s (mins)\n".format(tleaf+tmin, tleaf, tmin))
     cumins = []
     for l in Lcumins:
-        cumins += l
+        cumins += [ partition_to_cyclic(ll,d) for ll in l ]
     return cumins
