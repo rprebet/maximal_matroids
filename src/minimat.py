@@ -188,7 +188,7 @@ def add_edge(HT, x, i):
     if i == 4:
         return [ [HT[0][0], HT[0][1]+[x]] , HT[1]]
 
-def upper_covers(CF, d, S=[1,2,3,4], v=1, preprocess = False):
+def upper_covers(CF, d, S=[1,2,3,4], v=0, preprocess = False):
     # CF[i] are the cyclic flats of rk i of the input matroid M ##
     HT = cyclic_to_partition(CF,d)
     XT, P = HT

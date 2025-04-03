@@ -13,5 +13,5 @@ mL = minimat.upper_covers(DM, d, S = [1,2,3,4], v=1, preprocess = False)
 # Printing results
 print("Found {} minimal matroids above M:".format(len(mL)))
 for i,l in enumerate(mL):
-    minimat.printmat(l, d, pref="M{: <{width}}|".format(i+1, width=len(str(len(mL)))))
+    minimat.printmat(l, pref="M{: <{width}}|".format(i+1, width=len(str(len(mL)))))
 

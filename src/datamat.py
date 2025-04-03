@@ -24,7 +24,7 @@ def partition_to_cyclic(HT, d):
     return CF
 
 # Display function
-def printmat(CF, d, pref=""):
+def printmat(CF, pref=""):
     # Nice print of the matroids defined the cyclic flats
     Ci = []
     len(CF[0])>0 and Ci.append("T0: {" + ",".join( str(i) for i in CF[0]) + "}")
