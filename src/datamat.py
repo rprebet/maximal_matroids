@@ -1,7 +1,7 @@
 from src.hypergraph import remove, identify, supp
 
 # Data structure translation
-def cyclic_to_partition(CF, d):
+def cyclic_to_hyper(CF, d):
     # Compute a reduced labeled hypergraph associated to cyclic flats given in CF with ground set [d]
     # where CF[i] are the cyclic flats of rank i
     assert len(CF) == 4 and all(type(t)==list and len(t)==0 or type(t[0])==set for t in CF), "Wrong input for CF"
@@ -16,7 +16,7 @@ def cyclic_to_partition(CF, d):
         HT = identify(HT, L) # Identify double points
     return HT
 
-def partition_to_cyclic(HT, d):
+def hyper_to_cyclic(HT, d):
     # Compute the cyclic flats encoded in the reduced hypergraph HT with ground set [d]
     assert len(HT) == 2 and len(HT[0]) == 2 and all(type(t)==list and len(t)==0 or type(t[0])==set for t in HT[0]) and all(type(t)==set for t in HT[1]), "Wrong input for HT"
     assert d > 0 and all( s <= d for cf in HT[0] for c in cf for s in c ) and all( c <= d for cf in HT[1] for c in cf), "Wrong input for d"

@@ -5,6 +5,13 @@ from src.hypergraph import *
 from src.comparison import *
 from src.datamat import *
 
+def inf_cyclic(CF1, CF2, d):
+    """
+    Test whether CF1 <= CF2 or not
+    where Mi is the matroid defined by CFi, with ground set [d]
+    """
+    return inf_hyper(cyclic_to_hyper(CF1, d), cyclic_to_hyper(CF2, d))
+
 def solve_int(XT, r):
     """
     Input: labeled hypergraph XT (2-list of sets); r (integer)
@@ -192,7 +199,7 @@ def add_edge(HT, x, i):
     if i == 4:
         return [ [HT[0][0], HT[0][1]+[x]] , HT[1]]
 
-def upper_covers(CF, d, S=[1,2,3,4], v=0, preprocess=False):
+def minimal_extensions(CF, d, S=[1,2,3,4], v=0, preprocess=False):
     # CF[i] are the cyclic flats of rk i of the input matroid M ##
     """
     Input: CF (4-list of sets), d (int), S (sublist of [1,2,3,4]), v(Int), preproccess (Bool)
@@ -210,7 +217,7 @@ def upper_covers(CF, d, S=[1,2,3,4], v=0, preprocess=False):
     assert len(CF) == 4 and all(type(t)==list and len(t)==0 or type(t[0])==set for t in CF), "Wrong input for CF"
     assert d > 0 and all( s <= d for cf in CF for c in cf for s in c ), "Wrong input for d"
 
-    HT = cyclic_to_partition(CF, d)
+    HT = cyclic_to_hyper(CF, d)
     XT, P = HT
     tleaf, tmin = 0, 0
 
@@ -235,5 +242,5 @@ def upper_covers(CF, d, S=[1,2,3,4], v=0, preprocess=False):
     v>0 and print("Time elapsed {:.2f}s (total) ; {:.2f}s (cand) ; {:.2f}s (mins)\n".format(tleaf+tmin, tleaf, tmin))
     cumins = []
     for l in Lcumins:
-        cumins += [ partition_to_cyclic(ll,d) for ll in l ]
+        cumins += [ hyper_to_cyclic(ll,d) for ll in l ]
     return cumins

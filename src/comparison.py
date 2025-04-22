@@ -8,9 +8,11 @@ def test_T3(l, X2):
     return False
 
 def inf_hyper(H1, H2):
-    # Test whether M1 <= M2 or not
-    # where Mi is the matroid defined by Hi
-    # This assumes that the Hi are in reduced form
+    """
+    Test whether M1 <= M2 or not
+    where Mi is the matroid defined by Hi
+    This assumes that the Hi are in reduced form
+    """
     S1, S2 = supp(H1[1]), supp(H2[1])
     # Start with loops test
     if not S2 <= S1:
