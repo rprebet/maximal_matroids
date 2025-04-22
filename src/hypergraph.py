@@ -5,7 +5,7 @@ def is_inside(s, L):
     Check if s is contained in an element of L
     """
     for l in L:
-        if s <= l: 
+        if s <= l:
             return True
     return False
 
@@ -43,14 +43,14 @@ def rem_sub(XT):
     # Criterion 1: Remove sets that are subsets of another set in XT[k]
     for k in range(len(XT_new)):
         XT_new[k] = [
-            s for i, s in enumerate(XT_new[k]) 
+            s for i, s in enumerate(XT_new[k])
             if not any(s <= XT_new[k][j] for j in range(len(XT_new[k])) if i != j)
         ]
 
     # Criterion 2: Remove sets in XT[1] that are one element larger than a set in XT[0]
     if len(XT_new) > 1:
         XT_new[1] = [
-            s for s in XT_new[1] 
+            s for s in XT_new[1]
             if not any(len(t) + 1 == len(s) and t <= s for t in XT_new[0])
         ]
 
@@ -93,14 +93,21 @@ def identify(HT, l):
     return [XT1, P1]
 
 def remove(HT, e):
-    # Set e as a loop
+    """
+    Input: HT a labeled hypergraph (2-list of sets), e (Int) a element of the ground set of HT
+    Output: a labeled hypergraph HTnew where e belongs to some Type 0 edge
+
+    This function compute the induction and reduction of a labeled hypergraph HT where {e}
+    is adjoined as an edge of Type 0.
+    """
     XT, P = HT
+    # Equivalent class of e in P
     i = 0
     while i < len(P) and not e in P[i]:
         i += 1
     if i == len(P):
         return HT
-
+    # The class is {e}: just remove e and take induced hypergraph
     if len(P[i]) == 1:
         P1 = P[:i]+P[i+1:]
         XT1 = [[], []]
@@ -111,14 +118,14 @@ def remove(HT, e):
                         XT1[j].append(l - {e})
                 else:
                     XT1[j].append(l)
-
         return [XT1, P1]
-
+    # Else remove e from this class
     newPi = P[i] - {e}
     P1 = P[:i] + [newPi] + P[i+1:]
+    # If e was not the representative: nothing to do
     if min(P[i]) != e:
         return [XT, P1]
-
+    # Else we replace e by the new representative e1>e
     e1 = min(newPi)
     XT1 = [[], []]
     for j in range(2):
@@ -127,7 +134,6 @@ def remove(HT, e):
                 XT1[j].append(l- {e} | {e1})
             else:
                 XT1[j].append(l)
-
     return [XT1, P1]
 
 def inf_subs(P1,P2):
@@ -143,4 +149,5 @@ def inf_subs(P1,P2):
     return True
 
 def supp(L):
+    # Efficiently return the union of the sets listed in L
     return set.union(*L) if L else set()

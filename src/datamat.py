@@ -2,7 +2,11 @@ from src.hypergraph import remove, identify, supp
 
 # Data structure translation
 def cyclic_to_partition(CF, d):
-    # Compute a reduced labeled hypergraph associated to CF
+    # Compute a reduced labeled hypergraph associated to cyclic flats given in CF with ground set [d]
+    # where CF[i] are the cyclic flats of rank i
+    assert len(CF) == 4 and all(type(t)==list and len(t)==0 or type(t[0])==set for t in CF), "Wrong input for CF"
+    assert d > 0 and all( s <= d for cf in CF for c in cf for s in c ), "Wrong input for d"
+
     P = [{i} for i in range(1, d+1)]
     HT = [[CF[2].copy(), CF[3].copy()], P]
     if CF[0]:
@@ -13,7 +17,10 @@ def cyclic_to_partition(CF, d):
     return HT
 
 def partition_to_cyclic(HT, d):
-    # Inverse the reduction of a reduced labeled hypergraph
+    # Compute the cyclic flats encoded in the reduced hypergraph HT with ground set [d]
+    assert len(HT) == 2 and len(HT[0]) == 2 and all(type(t)==list and len(t)==0 or type(t[0])==set for t in HT[0]) and all(type(t)==set for t in HT[1]), "Wrong input for HT"
+    assert d > 0 and all( s <= d for cf in HT[0] for c in cf for s in c ) and all( c <= d for cf in HT[1] for c in cf), "Wrong input for d"
+
     CF = []
     XT, P = HT
     loops = set(i for i in range(1, d+1)).difference(supp(P))
@@ -26,6 +33,9 @@ def partition_to_cyclic(HT, d):
 # Display function
 def printmat(CF, pref=""):
     # Nice print of the matroids defined the cyclic flats
+    # after "Ti:" are listed all rank i cyclic flats
+    assert len(CF) == 4 and all(type(t)==list and len(t)==0 or type(t[0])==set for t in CF), "Wrong input for CF"
+
     Ci = []
     len(CF[0])>0 and Ci.append("T0: {" + ",".join( str(i) for i in CF[0]) + "}")
     Ci.append("T1: " + " ".join(( "{"+",".join(str(i) for i in p)+"}" for p in CF[1] if len(p)>1 )))

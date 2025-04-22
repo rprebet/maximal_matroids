@@ -46,14 +46,14 @@ def poset_mins_part_update(LX, Y, ind, f):
     Input:
     - LX is a list of lists X1,...,XN such that:
      * only X1>....>XN is possible
-     * X1 \\cup ... \\cup XN are minimal elts (i.e. elts are not pairwise comparable)
+     * X1 \cup ... \cup XN are minimal elts (i.e. elts are not pairwise comparable)
     - Y is a list of elements
     - 1 <= ind <= N an integer such that Y>Xj only if j>=ind
     Output:
     - A list of list X1,...,Yi,...,XN such that:
      * only X1>..>Yind>..>XN is possible
-     * X1 \\cup..Yind \\cup...\\cup XN are the minimal elts of
-       X1 \\cup ... \\cup XN \\cup Y
+     * X1 \cup..Yind \cup...\cup XN are the minimal elts of
+       X1 \cup ... \cup XN \cup Y
     """
 
     N = len(LX)
@@ -61,7 +61,6 @@ def poset_mins_part_update(LX, Y, ind, f):
     m, n = len(Y), Ln[ind-1]
     Yind = LX[ind-1]+Y
     is_minimal = [ [True]*Ln[i] for i in range(ind-1) ] + [ [True] * (n + m) ]
-
 
     # First test which elts of Y are killed by elt of X{ind+1},...,XN
     for i in range(m):
