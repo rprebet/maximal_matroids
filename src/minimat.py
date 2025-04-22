@@ -105,6 +105,16 @@ def detect_mat(XT, r):
     return 0, ()
 
 def comp_leaves(HT, r, pproc=False):
+    """
+    Input: labeled hypergraph XT (2-list of sets), r (int), pproc (Bool)
+    Output: a list Lcand of labeled hypergraphs
+
+    Compute all hypergraphs corresponding to the matroid extensions of
+    the input hypergraph, and that contain no additional Type < r edge.
+
+    Option pproc performs a call to solve_int before any recursive call.
+    This does not change the number of candidates, see the doc of solve_int for further details.
+    """
     # no  cyclic flat of rank < r included
     XT, P = HT
     XT = [XT[0].copy(), XT[1].copy()]
@@ -114,48 +124,42 @@ def comp_leaves(HT, r, pproc=False):
     XT = rem_sub(XT)
     if pproc:
         flag = True
+        # Perform preprocessing as many times as needed
         while flag:
             flag, XT = solve_int(XT, r)
-
     c, ind = detect_mat(XT, r)
-    if c == 0:
-      # This rpz a matroid
-      Lcand.append([XT, P])
 
+    # XT is already a matroid
+    if c == 0:
+      Lcand.append([XT, P])
     else:
         T2,  T3 = XT
         if c == 1:
             e1, e2 = T3[ind[0]], T3[ind[1]]
-
             if r <= 4:
                 T3bis = [ T3[i] for i in range(len(T3)) if i not in ind ]
                 T3bis.append(e1 | e2)
                 Lcand += comp_leaves([[T2, T3bis], P], r, pproc=pproc)
-
             if r <= 3:
                 T2bis = T2.copy() + [e1 & e2]
                 Lcand += comp_leaves([[T2bis, T3], P], r, pproc=pproc)
 
         elif c == 2:
             e1, e2 = T3[ind[0]], T2[ind[1]]
-
             if r <= 4:
                 T3bis = [ T3[i] for i in range(len(T3)) if i != ind[0] ]
                 T3bis.append(e1 | e2)
                 Lcand += comp_leaves([[T2, T3bis], P], r, pproc=pproc)
-
             if r <= 2:
                 HTid = identify(HT, e1 & e2)
                 Lcand += comp_leaves(HTid, r, pproc=pproc)
 
         elif c == 3:
             e1, e2 = T2[ind[0]], T2[ind[1]]
-
             if r <= 3:
                 T2bis = [ T2[i] for i in range(len(T2)) if i not in ind ]
                 T2bis.append(e1 | e2)
                 Lcand += comp_leaves([[T2bis, T3], P], r, pproc=pproc)
-
             if r <= 2:
                 HTid = identify(HT, e1 & e2)
                 Lcand += comp_leaves(HTid, r, pproc=pproc)
@@ -188,9 +192,25 @@ def add_edge(HT, x, i):
     if i == 4:
         return [ [HT[0][0], HT[0][1]+[x]] , HT[1]]
 
-def upper_covers(CF, d, S=[1,2,3,4], v=0, preprocess = False):
+def upper_covers(CF, d, S=[1,2,3,4], v=0, preprocess=False):
     # CF[i] are the cyclic flats of rk i of the input matroid M ##
-    HT = cyclic_to_partition(CF,d)
+    """
+    Input: CF (4-list of sets), d (int), S (sublist of [1,2,3,4]), v(Int), preproccess (Bool)
+    CF[i] are the cyclic flats of rk i of the input matroid M with ground set [d].
+
+    Output: a list cumins of 4-list of sets
+
+    The function computes all matroid exensions of M, that belong to all S_i, for i in the input list S.
+    These extensions are encoded by their cyclic flats in the output (as for the input M).
+
+    Integer v>0 controls verbosity level during computations and preprocess enable preprocessing in
+    comp_leaves function.
+    """
+    assert set(S) <= {1,2,3,4}, "Wrong input for S"
+    assert len(CF) == 4 and all(type(t)==list and len(t)==0 or type(t[0])==set for t in CF), "Wrong input for CF"
+    assert d > 0 and all( s <= d for cf in CF for c in cf for s in c ), "Wrong input for d"
+
+    HT = cyclic_to_partition(CF, d)
     XT, P = HT
     tleaf, tmin = 0, 0
 
@@ -203,10 +223,10 @@ def upper_covers(CF, d, S=[1,2,3,4], v=0, preprocess = False):
             x = { min(P[ind]) for ind in Lind } # Its representative
             if not redund_edge(XT, x, i): # Check x is not redundant in XT
                 t = time()
-                cands = comp_leaves(add_edge(HT, x, i), i, pproc=preprocess) if i>1 else [add_edge(HT, x, 1)]
-                t1 = time()
-                Lcumins = poset_mins_part_update(Lcumins, cands, i, inf_hyper)
-                tleaf += t1 - t;  tmin += time() - t1
+                cands = comp_leaves(add_edge(HT, x, i), i, pproc=preprocess) if i>1 else [add_edge(HT, x, 1)] # compute extension matroids
+                t1 = time(); tleaf += t1 - t
+                Lcumins = poset_mins_part_update(Lcumins, cands, i, inf_hyper) # select minimal ones
+                tmin += time() - t1
                 v==2 and print("Add {}: {:.2g}s".format(str(x).replace(" ", ""),time()-t))
                 v>2 and print("Add {}: {:,} cands ({:.2g}s); {:,} S{}-current mins ({:.2g}s) ".format(str(x).replace(" ", ""),len(cands), t1-t, len(Lcumins[i-1]), i, time()-t1))
         v>1 and print("{:,} current mins".format(sum(map(len,Lcumins))))
