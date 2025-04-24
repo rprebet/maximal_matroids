@@ -3,7 +3,8 @@
 This repository contains an open source implementation in Python of algorithms described in the submitted paper:
 
 > *Efficient Algorithms for Minimal Matroid Extensions and Irreducible Decompositions of Circuit Varieties*<br>
-> E.Liwski and F.Mohammadi and R.Prébet, Apr. 2025
+> E.Liwski and F.Mohammadi and R.Prébet, Apr. 2025<br>
+> <https://arxiv.org/abs/2504.16632>
 
 The functions implemented mainly allows one to:
 * compare two matroids of rank at most 4 with the function **inf_cyclic**
