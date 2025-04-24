@@ -6,9 +6,10 @@ This repository contains an open source implementation in Python of algorithms d
 > E.Liwski and F.Mohammadi and R.Prébet, Apr. 2025<br>
 > <https://arxiv.org/abs/2504.16632>
 
-The functions implemented mainly allows one to:
-* compare two matroids of rank at most 4 with the function **inf_cyclic**
-* compute all minimal extensions of with the function **minimal_extensions**
+Consider matroids $M$ and $N$ with ground set $\{1,\dotsc,d\}$, given by their list of cyclic flats: `CF(M)` and `CF(N)`, resp..<br>
+If $M$ and $N$ have **rank at most 4**, then one can:
+* compare $M$ and $N$ with the function call: `inf_cyclic( CF(M), CF(N), d ) `
+* compute all minimal extensions of $M$ with the function call: `minimal_extensions(CF(M), d)`
 
 All useful functions can be loaded by importing the file **minimat.py** contained in the directory **src/**. The documentation of each function can be obtained either from source code or in th terminal by e.g.:
 ```python
@@ -32,7 +33,7 @@ Then, it defined the input: ground set and cyclic flats listed by increasing ran
 > DM = [[],[], [], [{1,2,3,4},{3,4,5,6},{5,6,7,8},{1,2,7,8},{3,4,7,8}]]
 ```
 
-Then, it computes all minimal extensions above the matroid encoded by DM, and stores them in mL.
+Then, it computes all minimal extensions above the matroid encoded by `DM`, and stores them in `mL`.
 ```python
 > mL = minimat.minimal_extensions(DM, d, S = [1,2,3,4], v=1, preprocess = False)
 
@@ -40,12 +41,12 @@ Compute minimals in S1(M), S2(M), S3(M), S4(M)
 Time elapsed 0.06s (total) ; 0.01s (cand) ; 0.05s (mins)
 ```
 Here, we set the optional parameters:
-* **S=[1,2,3,4]** to compute extensions in S_1, S_2, S_3 and S_4;
-* **v=1** we print only global information about the computations : the S_i in which we compute and the timings:
-    * (tot): total elapsed time;
-    * (cand): time spent computing extensions;
-    * (mins): time spent identifying the minimal ones.
-* **preprocess=False** an additional feature that might remove some useless recursive calls during computation. Since this does not change the timings that much, we generally do not use it.
+* `S=[1,2,3,4]` to compute extensions in $S_1(M)$, $S_2(M)$, $S_3(M)$ and $S_4(M)$;
+* `v=1` we print only global information about the computations : the $S_i(M)$ in which we compute and the timings:
+    * `(tot)`: total elapsed time;
+    * `(cand)`: time spent computing extensions;
+    * `(mins)`: time spent identifying the minimal ones.
+* `preprocess=False` an additional feature that might remove some useless recursive calls during computation. Since this does not change the timings that much, we generally do not use it.
 
 Then, we display the result using a tailored function for nice printing.
 ```python
@@ -71,4 +72,4 @@ M61| T3: {1,2,3,4} {3,4,5,6} {8,5,6,7} {8,1,2,7} {8,3,4,7} {8,9,4,6}
 M62| T3: {1,2,3,4} {3,4,5,6} {8,1,2,7} {8,3,4,7} {5,6,7,8,9}
 ```
 
-For each matroid in mL, we display its cyclic flats, grouped by rank. More precisely, after each **Ti:** all cyclic flats of rank i are displayed.
+For each matroid in mL, we display its cyclic flats, grouped by rank. More precisely, after each `Ti:` all cyclic flats of rank i are displayed.
