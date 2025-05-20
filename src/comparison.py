@@ -191,7 +191,7 @@ def parallel_min_merge(LB, LC, f, depth, n_procs=1):
         return LB, SLC[0]+SLC[1]
 
 def parallel_min_poset(LX, f, depth = 0, n_procs = 1):
-    T = 6 # Parameter threshold at which we switch back to non-recursive computations
+    T = 8 # Parameter threshold at which we switch back to non-recursive computations
     if sum(map(len,LX)) <= T:
         return serial_min_poset(LX, f)
     LX = split(LX)
