@@ -215,6 +215,9 @@ def minimal_extensions(CF, d, S=[1,2,3,4], v=0, preprocess=False, n_procs=1):
 
     Integer v>0 controls verbosity level during computations and preprocess enable preprocessing in
     comp_leaves function.
+
+    n_procs (default 1) is the maximum number of processes to use for parallelization.
+    If n_procs <= 0 it uses automatically all available cpus.
     """
     assert set(S) <= {1,2,3,4}, "Wrong input for S"
     assert len(CF) == 4 and all(type(t)==list and len(t)==0 or type(t[0])==set for t in CF), "Wrong input for CF"
