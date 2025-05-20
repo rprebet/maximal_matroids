@@ -228,38 +228,44 @@ def minimal_extensions(CF, d, S=[1,2,3,4], v=0, preprocess=False, n_procs=1):
 
     HT = cyclic_to_hyper(CF, d)
     XT, P = HT
-    tleaf, tmin1, tmin2 = 0, 0, 0
+    tleaf, tmins = 0, 0
 
     v>0 and print("Compute minimals in " + ", ".join(["S{}(M)".format(i) for i in S]))
 
     Lcumins = []
 
     for i in sorted(S, reverse=True): # We start by highest Si, being smallest
-        #print(i)
         Lcands = []
         for Lind in combinations(range(d), i): # Take a circuit of size i
             x = { min(P[ind]) for ind in Lind } # Its representative
             if not redund_edge(XT, x, i): # Check x is not redundant in XT
-                t = time()
-                Lcands.append(comp_leaves(add_edge(HT, x, i), i, pproc=preprocess) if i>1 else [add_edge(HT, x, 1)]) # compute extension matroids
-                tleaf += time() - t
-                v==2 and print("Add {}: {:.2g}s".format(str(x).replace(" ", ""),time()-t))
-                #v>2 and print("Add {}: {:,} cands ({:.2g}s); {:,} S{}-current mins ({:.2g}s) ".format(str(x).replace(" ", ""),len(cands), t1-t, len(Lcumins[i-1]), i, time()-t1))
-        t1 = time()
+                Lcands.append([add_edge(HT, x, i), x])
+        t = time()
+        v > 0 and print("Min cands:")
         with Pool(n_procs) as p:
-            LX = list(p.map(partial(poset_mins_part, LX=Lcumins, f=inf_hyper), Lcands)) # select minimal ones
-        tmin1 += time() - t1
-        t2 = time()
-        plop = parallel_min_poset(LX, inf_hyper, n_procs=n_procs)
+            Lcands = p.map(
+                partial(poset_mins_part, LX=Lcumins, f=inf_hyper),  # Compute minimal candidates
+                p.map(partial(comp_leaves, r=i, pproc=preprocess),  # Compute candidates
+                    p.map(partial(show_dep, v=v-1), Lcands)           # Show current dep
+                )
+            )
+        t1 = time(); tleaf += t1 - t
+        v > 0 and print("Intermins:")
+        Lmins = parallel_min_poset(Lcands, inf_hyper, n_procs=n_procs)
         Lcumins.append([])
-        for pl in plop:
-            Lcumins[-1].extend(pl)
-        tmin2 += time() - t2
+        for mins in Lmins:
+            Lcumins[-1].extend(mins)
+        tmins += time() - t1
         v>1 and print("{:,} current mins".format(sum(map(len,Lcumins))))
+        v>1 and print(tleaf, tmins)
 
-
-    v>0 and print("Time elapsed {:.2f}s (total) ; {:.2f}s (cand) ; {:.2f}s (mins1) ; {:.2f}s (mins2)\n".format(tleaf+tmin1+tmin2, tleaf, tmin1, tmin2))
+    v>0 and print("Time elapsed {:.2f}s (total) ; {:.2f}s (cand) ; {:.2f}s (mins)\n".format(tleaf+tmins, tleaf, tmins))
     cumins = []
     for l in Lcumins:
         cumins += [ hyper_to_cyclic(ll,d) for ll in l ]
     return cumins
+
+def show_dep(cand, v):
+    if v > 0:
+        print("Add", cand[1])
+    return cand[0]
