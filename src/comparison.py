@@ -49,75 +49,48 @@ def inf_hyper(H1, H2):
 
     return True
 
-def poset_mins_part_update(Y, LX, ind, f, outY=False):
+def poset_mins_part(Y, LX, f):
     """
     Input:
-    - LX is a list of lists X1,...,XN such that:
-     * only X1>....>XN is possible
-     * X1 \\cup ... \\cup XN are minimal elts (i.e. elts are not pairwise comparable)
+    - LX is a list of lists X1,...,XN such that only Xi < Y is possible
     - Y is a list of elements
-    - 1 <= ind <= N an integer such that Y>Xj only if j>=ind
-    - outY : outputs only the new Yi
     Output:
-    - A list of list X1,...,Yi,...,XN such that:
-     * only X1>..>Yind>..>XN is possible
-     * X1 \\cup..Yind \\cup...\\cup XN are the minimal elts of
-       X1 \\cup ... \\cup XN \\cup Y
-    - If outY, outputs only Yi
+    - A list of list Ymin such that contains the minimal elements of Y such that
+    the elements of LX \\cup Ymin are not pairwise comparable
     """
-
-    N = len(LX)
-    Ln = [ len(X) for X in LX ]
-    m, n = len(Y), Ln[ind-1]
-    Yind = LX[ind-1]+Y
-    is_minimal = [ [True]*Ln[i] for i in range(ind-1) ] + [ [True] * (n + m) ]
+    m = len(Y)
+    is_minimal = [True] * m
 
     # First test which elts of Y are killed by elt of X{ind+1},...,XN
     for i in range(m):
-        x = Y[i]
-        for k in reversed(range(ind, N)):
-            if is_minimal[ind-1][i+n]:
-                for j in range(Ln[k]):
-                    if f(LX[k][j], Y[i]):
-                        is_minimal[ind-1][i+n] = False
+        for X in LX:
+            if is_minimal[i]:
+                for x in X:
+                    if f(x, Y[i]):
+                        is_minimal[i] = False
                         break
 
     # Now test inside the elements of X{ind} and Y
     for i in range(m):
-        if is_minimal[ind-1][i+n]:
-            for j in range(n+i):
-                if is_minimal[ind-1][j]:
-                    if f(Yind[j], Yind[i+n]):  # Yind[j] less than Yind[i+n]
-                        is_minimal[ind-1][i+n] = False
+        if is_minimal[i]:
+            for j in range(i+1, m):
+                if is_minimal[j]:
+                    if f(Y[j], Y[i]):  # Y[j] <= Y[i]
+                        is_minimal[i] = False
                         break
-                    elif f(Yind[i+n], Yind[j]):  # Yind[i+n] <= Yind[j]
-                        is_minimal[ind-1][j] = False
+                    elif f(Y[i], Y[j]):  # Y[i] <= Y[j]
+                        is_minimal[j] = False
 
-    # Finally test if the remaining Y kills elts in X1,...,X{ind-1}
-    for i in range(m):
-        x = Y[i]
-        if is_minimal[ind-1][i]:
-            for k in reversed(range(ind-1)):
-                for j in range(Ln[k]):
-                    if f(x, LX[k][j]):
-                        is_minimal[k][j] = False
-
-    Yi = [Yind[j] for j in range(n+m) if is_minimal[ind-1][j]]
-    if outY:
-        Lmins = Yi
-    else:
-        Lmins = [ [LX[k][j] for j in range(Ln[k]) if is_minimal[k][j]] for k in range(ind-1) ]
-        Lmins.append(Yi)
-        Lmins += LX[ind:]
-    return Lmins
+    return [Y[j] for j in range(m) if is_minimal[j]]
 
 def serial_min_poset(LX, f):
     """
     Input:
-    - LX is a list of lists X1,...,XN such that:
-     * each Xi are minimal elts (i.e. elts are not pairwise comparable)
+    - LX is a list of lists X1,...,XN such that each Xi are
+    minimal elts (i.e. elts are not pairwise comparable)
     Output:
-    - a list Y of the minimal elts of the union of the Xi
+    - a list LY of the lists Y1,...,YM of the minimal elts of the Xi
+    such that the elts of Y1 \\cup...\\cup YM are not pairwise comparable
     """
     N = len(LX)
     Ln = [ len(X) for X in LX ]
@@ -129,10 +102,10 @@ def serial_min_poset(LX, f):
                     if is_minimal[i][j]:
                         for j1 in range(Ln[i1]):
                             if is_minimal[i1][j1]:
-                                if f(LX[i1][j1], LX[i][j]):  # Yind[j] less than Yind[i+n]
+                                if f(LX[i1][j1], LX[i][j]):
                                     is_minimal[i][j] = False
                                     break
-                                elif f(LX[i][j], LX[i1][j1]):  # Yind[i+n] <= Yind[j]
+                                elif f(LX[i][j], LX[i1][j1]):
                                     is_minimal[i1][j1] = False
                     else:
                         break

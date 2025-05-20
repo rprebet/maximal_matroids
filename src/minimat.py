@@ -229,7 +229,7 @@ def minimal_extensions(CF, d, S=[1,2,3,4], v=0, preprocess=False, n_procs=1):
 
     v>0 and print("Compute minimals in " + ", ".join(["S{}(M)".format(i) for i in S]))
 
-    Lcumins = [ [] for _ in range(4) ]
+    Lcumins = []
 
     for i in sorted(S, reverse=True): # We start by highest Si, being smallest
         #print(i)
@@ -244,12 +244,13 @@ def minimal_extensions(CF, d, S=[1,2,3,4], v=0, preprocess=False, n_procs=1):
                 #v>2 and print("Add {}: {:,} cands ({:.2g}s); {:,} S{}-current mins ({:.2g}s) ".format(str(x).replace(" ", ""),len(cands), t1-t, len(Lcumins[i-1]), i, time()-t1))
         t1 = time()
         with Pool(n_procs) as p:
-            LX = list(p.map(partial(poset_mins_part_update, LX=Lcumins, ind=i, f=inf_hyper, outY=True), Lcands)) # select minimal ones
+            LX = list(p.map(partial(poset_mins_part, LX=Lcumins, f=inf_hyper), Lcands)) # select minimal ones
         tmin1 += time() - t1
         t2 = time()
         plop = parallel_min_poset(LX, inf_hyper, n_procs=n_procs)
+        Lcumins.append([])
         for pl in plop:
-            Lcumins[i-1].extend(pl)
+            Lcumins[-1].extend(pl)
         tmin2 += time() - t2
         v>1 and print("{:,} current mins".format(sum(map(len,Lcumins))))
 
