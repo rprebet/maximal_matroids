@@ -83,47 +83,20 @@ def poset_mins_part(Y, LX, f):
 
     return [Y[j] for j in range(m) if is_minimal[j]]
 
-def serial_min_poset(LX, f):
-    """
-    Input:
-    - LX is a list of lists X1,...,XN such that each Xi are
-    minimal elts (i.e. elts are not pairwise comparable)
-    Output:
-    - a list LY of the lists Y1,...,YM of the minimal elts of the Xi
-    such that the elts of Y1 \\cup...\\cup YM are not pairwise comparable
-    """
-    N = len(LX)
-    Ln = [ len(X) for X in LX ]
-    is_minimal = [ [True]*Ln[i] for i in range(N) ]
-    for i in range(N):
-        for j in range(Ln[i]):
-            if is_minimal[i][j]:
-                for i1 in range(i+1, N):
-                    if is_minimal[i][j]:
-                        for j1 in range(Ln[i1]):
-                            if is_minimal[i1][j1]:
-                                if f(LX[i1][j1], LX[i][j]):
-                                    is_minimal[i][j] = False
-                                    break
-                                elif f(LX[i][j], LX[i1][j1]):
-                                    is_minimal[i1][j1] = False
-                    else:
-                        break
-
-    tmp = [ [ LX[i][j] for j in range(Ln[i]) if is_minimal[i][j] ] for i in range(N) ]
-    return [ t for t in tmp if t ]
-
 def split(L):
     N = len(L)//2
     return [L[:N], L[N:]]
 
 def serial_min_merge(LB, LC, f):
     """
+    Serial/iterative function to merge two sets of minimal elts of a poset
+
     Input:
-    - LX is a list of lists X1,...,XN such that:
-     * each Xi are minimal elts (i.e. elts are not pairwise comparable)
+    - Two lists LB and LC of list e.g. LB1,...,LBN whose elements
+    are not pairwise comparable inside LB.
     Output:
-    - a list Y of the minimal elts of the union of the Xi
+    - a list LBC of the lists LBC1,...,LBCM of the minimal elts of LB \\cup LC
+    such that the elts of LBC1 \\cup...\\cup LBCM are not pairwise comparable
     """
     N, M = len(LB), len(LC)
     Ln, Lm = [ len(B) for B in LB ], [ len(C) for C in LC ]
@@ -148,7 +121,19 @@ def serial_min_merge(LB, LC, f):
     LC = [ [ LC[i][j] for j in range(Lm[i]) if is_minimal[1][i][j] ] for i in range(M) ]
     return [ lb for lb in LB if lb ], [lc for lc in LC if lc]
 
-def parallel_min_merge(LB, LC, f, depth, n_procs=1):
+def parallel_min_merge(LB, LC, f, depth=0, n_procs=1):
+    """
+    Parallel/recursive function to merge two sets of minimal elts of a poset
+
+    Input:
+    - Two lists LB and LC of list e.g. LB1,...,LBN whose elements
+    are not pairwise comparable inside LB.
+    - depth (default 0): the recursion depth (to control nb of processes in use)
+    - n_procs (default 1): max number of processes to use
+    Output:
+    - a list LBC of the lists LBC1,...,LBCM of the minimal elts of LB \\cup LC
+    such that the elts of LBC1 \\cup...\\cup LBCM are not pairwise comparable
+    """
     T = 6 # Parameter threshold at which we switch back to non-recursive computations
     nB, nC = sum(map(len,LB)), sum(map(len,LC))
     if nB <= T and nC <= T:
@@ -190,8 +175,52 @@ def parallel_min_merge(LB, LC, f, depth, n_procs=1):
         LB, SLC[1] = parallel_min_merge(LB, SLC[1], f, depth, n_procs)
         return LB, SLC[0]+SLC[1]
 
+def serial_min_poset(LX, f):
+    """
+    Serial/iterative function to compute minimal elts of a poset
+
+    Input:
+    - LX is a list of lists X1,...,XN such that each Xi are
+    minimal elts (i.e. elts are not pairwise comparable)
+    Output:
+    - a list LY of the lists Y1,...,YM of the minimal elts of the Xi
+    such that the elts of Y1 \\cup...\\cup YM are not pairwise comparable
+    """
+    N = len(LX)
+    Ln = [ len(X) for X in LX ]
+    is_minimal = [ [True]*Ln[i] for i in range(N) ]
+    for i in range(N):
+        for j in range(Ln[i]):
+            if is_minimal[i][j]:
+                for i1 in range(i+1, N):
+                    if is_minimal[i][j]:
+                        for j1 in range(Ln[i1]):
+                            if is_minimal[i1][j1]:
+                                if f(LX[i1][j1], LX[i][j]):
+                                    is_minimal[i][j] = False
+                                    break
+                                elif f(LX[i][j], LX[i1][j1]):
+                                    is_minimal[i1][j1] = False
+                    else:
+                        break
+
+    tmp = [ [ LX[i][j] for j in range(Ln[i]) if is_minimal[i][j] ] for i in range(N) ]
+    return [ t for t in tmp if t ]
+
 def parallel_min_poset(LX, f, depth = 0, n_procs = 1):
-    T = 8 # Parameter threshold at which we switch back to non-recursive computations
+    """
+    Parallel/recursive function to compute minimal elts of a poset
+
+    Input:
+    - LX is a list of lists X1,...,XN such that each Xi are
+    minimal elts (i.e. elts are not pairwise comparable)
+    - depth (default 0): the recursion depth (to control nb of processes in use)
+    - n_procs (default 1): max number of processes to use
+    Output:
+    - a list LY of the lists Y1,...,YM of the minimal elts of the Xi
+    such that the elts of Y1 \\cup...\\cup YM are not pairwise comparable
+    """
+    T = 6 # Parameter threshold at which we switch back to non-recursive computations
     if sum(map(len,LX)) <= T:
         return serial_min_poset(LX, f)
     LX = split(LX)
