@@ -1,5 +1,8 @@
 from time import time
 from itertools import combinations
+from multiprocessing import Pool
+from functools import partial
+import multiprocessing
 
 from src.hypergraph import *
 from src.comparison import *
@@ -199,7 +202,7 @@ def add_edge(HT, x, i):
     if i == 4:
         return [ [HT[0][0], HT[0][1]+[x]] , HT[1]]
 
-def minimal_extensions(CF, d, S=[1,2,3,4], v=0, preprocess=False):
+def minimal_extensions(CF, d, S=[1,2,3,4], v=0, preprocess=False, n_procs=1):
     # CF[i] are the cyclic flats of rk i of the input matroid M ##
     """
     Input: CF (4-list of sets), d (int), S (sublist of [1,2,3,4]), v(Int), preproccess (Bool)
@@ -212,35 +215,56 @@ def minimal_extensions(CF, d, S=[1,2,3,4], v=0, preprocess=False):
 
     Integer v>0 controls verbosity level during computations and preprocess enable preprocessing in
     comp_leaves function.
+
+    n_procs (default 1) is the maximum number of processes to use for parallelization.
+    If n_procs <= 0 it uses automatically all available cpus.
     """
     assert set(S) <= {1,2,3,4}, "Wrong input for S"
     assert len(CF) == 4 and all(type(t)==list and len(t)==0 or type(t[0])==set for t in CF), "Wrong input for CF"
     assert d > 0 and all( s <= d for cf in CF for c in cf for s in c ), "Wrong input for d"
 
+    if n_procs <= 0:
+        n_procs = multiprocessing.cpu_count()
+
     HT = cyclic_to_hyper(CF, d)
     XT, P = HT
-    tleaf, tmin = 0, 0
+    tleaf, tmins = 0, 0
 
-    v>0 and print("Compute minimals in " + ", ".join(["S{}(M)".format(i) for i in S]))
+    v>0 and print("Compute minimals in " + ", ".join(["S{}(M)".format(i) for i in S]) +
+                   " ({} process{})".format(n_procs, "es"*(n_procs>1)))
 
-    Lcumins = [ [] for _ in range(4) ]
+    Lcumins = []
 
     for i in sorted(S, reverse=True): # We start by highest Si, being smallest
+        Lcands = []
         for Lind in combinations(range(d), i): # Take a circuit of size i
             x = { min(P[ind]) for ind in Lind } # Its representative
             if not redund_edge(XT, x, i): # Check x is not redundant in XT
-                t = time()
-                cands = comp_leaves(add_edge(HT, x, i), i, pproc=preprocess) if i>1 else [add_edge(HT, x, 1)] # compute extension matroids
-                t1 = time(); tleaf += t1 - t
-                Lcumins = poset_mins_part_update(Lcumins, cands, i, inf_hyper) # select minimal ones
-                tmin += time() - t1
-                v==2 and print("Add {}: {:.2g}s".format(str(x).replace(" ", ""),time()-t))
-                v>2 and print("Add {}: {:,} cands ({:.2g}s); {:,} S{}-current mins ({:.2g}s) ".format(str(x).replace(" ", ""),len(cands), t1-t, len(Lcumins[i-1]), i, time()-t1))
-        v>1 and print("{:,} current mins".format(sum(map(len,Lcumins))))
+                Lcands.append([add_edge(HT, x, i), x])
+        t = time()
+        with Pool(n_procs) as p:
+            Lcands = p.map(
+                partial(poset_mins_part, LX=Lcumins, f=inf_hyper),  # Compute minimal candidates
+                p.map(partial(comp_leaves, r=i, pproc=preprocess),  # Compute candidates
+                    p.map(partial(show_dep, v=v-1), Lcands)           # Show current dependancy
+                )
+            )
+        t1 = time(); tleaf += t1 - t
+        v > 1 and  print("Min cands: {:.2f}s ; Intermins: ".format(t1 - t), end="")
+        Lmins = parallel_min_poset(Lcands, inf_hyper, n_procs=n_procs)
+        Lcumins.append([])
+        for mins in Lmins:
+            Lcumins[-1].extend(mins)
+        tmins += time() - t1
+        v>1 and print("{:.2f}s ; {:,} current mins".format(time()-t1, sum(map(len,Lcumins))))
 
-
-    v>0 and print("Time elapsed {:.2f}s (total) ; {:.2f}s (cand) ; {:.2f}s (mins)\n".format(tleaf+tmin, tleaf, tmin))
+    v>0 and print("Time elapsed {:.2f}s (total) ; {:.2f}s (min cands) ; {:.2f}s (inter mins)\n".format(tleaf+tmins, tleaf, tmins))
     cumins = []
     for l in Lcumins:
         cumins += [ hyper_to_cyclic(ll,d) for ll in l ]
     return cumins
+
+def show_dep(cand, v):
+    if v > 1:
+        print("Add", cand[1])
+    return cand[0]

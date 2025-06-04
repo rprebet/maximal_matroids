@@ -1,4 +1,10 @@
 from src.hypergraph import supp, inf_subs, replace, remove, is_inside, diff_size
+from multiprocessing import Pool
+import multiprocessing
+import multiprocessing.pool
+from itertools import repeat
+from functools import partial
+from math import log2
 
 def test_T3(l, X2):
     if is_inside(l, X2[1]):
@@ -43,59 +49,206 @@ def inf_hyper(H1, H2):
 
     return True
 
-def poset_mins_part_update(LX, Y, ind, f):
+def poset_mins_part(Y, LX, f):
     """
     Input:
-    - LX is a list of lists X1,...,XN such that:
-     * only X1>....>XN is possible
-     * X1 \cup ... \cup XN are minimal elts (i.e. elts are not pairwise comparable)
+    - LX is a list of lists X1,...,XN such that only Xi < Y is possible
     - Y is a list of elements
-    - 1 <= ind <= N an integer such that Y>Xj only if j>=ind
     Output:
-    - A list of list X1,...,Yi,...,XN such that:
-     * only X1>..>Yind>..>XN is possible
-     * X1 \cup..Yind \cup...\cup XN are the minimal elts of
-       X1 \cup ... \cup XN \cup Y
+    - A list of list Ymin such that contains the minimal elements of Y such that
+    the elements of LX \\cup Ymin are not pairwise comparable
     """
-
-    N = len(LX)
-    Ln = [ len(X) for X in LX ]
-    m, n = len(Y), Ln[ind-1]
-    Yind = LX[ind-1]+Y
-    is_minimal = [ [True]*Ln[i] for i in range(ind-1) ] + [ [True] * (n + m) ]
+    m = len(Y)
+    is_minimal = [True] * m
 
     # First test which elts of Y are killed by elt of X{ind+1},...,XN
     for i in range(m):
-        x = Y[i]
-        for k in reversed(range(ind, N)):
-            if is_minimal[ind-1][i+n]:
-                for j in range(Ln[k]):
-                    if f(LX[k][j], Y[i]):
-                        is_minimal[ind-1][i+n] = False
+        for X in LX:
+            if is_minimal[i]:
+                for x in X:
+                    if f(x, Y[i]):
+                        is_minimal[i] = False
                         break
 
     # Now test inside the elements of X{ind} and Y
     for i in range(m):
-        if is_minimal[ind-1][i+n]:
-            for j in range(n+i):
-                if is_minimal[ind-1][j]:
-                    if f(Yind[j], Yind[i+n]):  # Yind[j] less than Yind[i+n]
-                        is_minimal[ind-1][i+n] = False
+        if is_minimal[i]:
+            for j in range(i+1, m):
+                if is_minimal[j]:
+                    if f(Y[j], Y[i]):  # Y[j] <= Y[i]
+                        is_minimal[i] = False
                         break
-                    elif f(Yind[i+n], Yind[j]):  # Yind[i+n] <= Yind[j]
-                        is_minimal[ind-1][j] = False
+                    elif f(Y[i], Y[j]):  # Y[i] <= Y[j]
+                        is_minimal[j] = False
 
-    # Finally test if the remaining Y kills elts in X1,...,X{ind-1}
-    for i in range(m):
-        x = Y[i]
-        if is_minimal[ind-1][i]:
-            for k in reversed(range(ind-1)):
-                for j in range(Ln[k]):
-                    if f(x, LX[k][j]):
-                        is_minimal[k][j] = False
+    return [Y[j] for j in range(m) if is_minimal[j]]
 
-    Lmins = [ [LX[k][j] for j in range(Ln[k]) if is_minimal[k][j]] for k in range(ind-1) ]
-    Lmins.append([Yind[j] for j in range(n+m) if is_minimal[ind-1][j]])
-    Lmins += LX[ind:]
+def split(L):
+    N = len(L)//2
+    return [L[:N], L[N:]]
 
-    return Lmins
+def serial_min_merge(LB, LC, f):
+    """
+    Serial/iterative function to merge two sets of minimal elts of a poset
+
+    Input:
+    - Two lists LB and LC of list e.g. LB1,...,LBN whose elements
+    are not pairwise comparable inside LB.
+    Output:
+    - a list LBC of the lists LBC1,...,LBCM of the minimal elts of LB \\cup LC
+    such that the elts of LBC1 \\cup...\\cup LBCM are not pairwise comparable
+    """
+    N, M = len(LB), len(LC)
+    Ln, Lm = [ len(B) for B in LB ], [ len(C) for C in LC ]
+    is_minimal = [ [ [True]*Ln[i] for i in range(N) ],
+                   [ [True]*Lm[i] for i in range(M) ]]
+
+    for i in range(N):
+        for j in range(Ln[i]):
+            if is_minimal[0][i][j]:
+                for i1 in range(M):
+                    if is_minimal[0][i][j]:
+                        for j1 in range(Lm[i1]):
+                            if is_minimal[1][i1][j1]:
+                                if f(LC[i1][j1], LB[i][j]):  # Yind[j] less than Yind[i+n]
+                                    is_minimal[0][i][j] = False
+                                    break
+                                elif f(LB[i][j], LC[i1][j1]):  # Yind[i+n] <= Yind[j]
+                                    is_minimal[1][i1][j1] = False
+                    else:
+                        break
+    LB = [ [ LB[i][j] for j in range(Ln[i]) if is_minimal[0][i][j] ] for i in range(N) ]
+    LC = [ [ LC[i][j] for j in range(Lm[i]) if is_minimal[1][i][j] ] for i in range(M) ]
+    return [ lb for lb in LB if lb ], [lc for lc in LC if lc]
+
+def parallel_min_merge(LB, LC, f, depth=0, n_procs=1):
+    """
+    Parallel/recursive function to merge two sets of minimal elts of a poset
+
+    Input:
+    - Two lists LB and LC of list e.g. LB1,...,LBN whose elements
+    are not pairwise comparable inside LB.
+    - depth (default 0): the recursion depth (to control nb of processes in use)
+    - n_procs (default 1): max number of processes to use
+    Output:
+    - a list LBC of the lists LBC1,...,LBCM of the minimal elts of LB \\cup LC
+    such that the elts of LBC1 \\cup...\\cup LBCM are not pairwise comparable
+    """
+    T = 6 # Parameter threshold at which we switch back to non-recursive computations
+    nB, nC = sum(map(len,LB)), sum(map(len,LC))
+    if nB <= T and nC <= T:
+        return serial_min_merge(LB, LC, f)
+    elif nB > T and nC > T:
+        SLB, SLC = split(LB), split(LC)
+        # First parallel split
+        if depth < int(log2(n_procs))-1:
+            with MyPool(2) as p:
+                [[SLB[0], SLC[0]], [SLB[1], SLC[1]]] = p.starmap(
+                    partial(parallel_min_merge, f=f, depth=depth+1, n_procs=n_procs),
+                    zip(SLB, SLC)
+                    )
+        else:
+            SLB[0], SLC[0] = parallel_min_merge(SLB[0], SLC[0], f, depth, n_procs)
+            SLB[1], SLC[1] = parallel_min_merge(SLB[1], SLC[1], f, depth, n_procs)
+        # Second parallel split
+        if depth < int(log2(n_procs))-1:
+            with MyPool(2) as p:
+                [[SLB[0], SLC[1]], [SLB[1], SLC[0]]] = p.starmap(
+                    partial(parallel_min_merge, f=f, depth=depth+1, n_procs=n_procs),
+                    zip(SLB, reversed(SLC))
+                    )
+        else:
+            SLB[0], SLC[1] = parallel_min_merge(SLB[0], SLC[1], f, depth, n_procs)
+            SLB[1], SLC[0] = parallel_min_merge(SLB[1], SLC[0], f, depth, n_procs)
+
+        return SLB[0]+SLB[1], SLC[0]+SLC[1]
+    elif nB > T and nC <= T:
+        SLB = split(LB)
+        # No parallel split as C is shared
+        SLB[0], LC = parallel_min_merge(SLB[0], LC, f, depth, n_procs)
+        SLB[1], LC = parallel_min_merge(SLB[1], LC, f, depth, n_procs)
+        return SLB[0]+SLB[1], LC
+    else:#nB <= T and nC > T
+        SLC = split(LC)
+        # No parallel split as C is shared
+        LB, SLC[0] = parallel_min_merge(LB, SLC[0], f, depth, n_procs)
+        LB, SLC[1] = parallel_min_merge(LB, SLC[1], f, depth, n_procs)
+        return LB, SLC[0]+SLC[1]
+
+def serial_min_poset(LX, f):
+    """
+    Serial/iterative function to compute minimal elts of a poset
+
+    Input:
+    - LX is a list of lists X1,...,XN such that each Xi are
+    minimal elts (i.e. elts are not pairwise comparable)
+    Output:
+    - a list LY of the lists Y1,...,YM of the minimal elts of the Xi
+    such that the elts of Y1 \\cup...\\cup YM are not pairwise comparable
+    """
+    N = len(LX)
+    Ln = [ len(X) for X in LX ]
+    is_minimal = [ [True]*Ln[i] for i in range(N) ]
+    for i in range(N):
+        for j in range(Ln[i]):
+            if is_minimal[i][j]:
+                for i1 in range(i+1, N):
+                    if is_minimal[i][j]:
+                        for j1 in range(Ln[i1]):
+                            if is_minimal[i1][j1]:
+                                if f(LX[i1][j1], LX[i][j]):
+                                    is_minimal[i][j] = False
+                                    break
+                                elif f(LX[i][j], LX[i1][j1]):
+                                    is_minimal[i1][j1] = False
+                    else:
+                        break
+
+    tmp = [ [ LX[i][j] for j in range(Ln[i]) if is_minimal[i][j] ] for i in range(N) ]
+    return [ t for t in tmp if t ]
+
+def parallel_min_poset(LX, f, depth = 0, n_procs = 1):
+    """
+    Parallel/recursive function to compute minimal elts of a poset
+
+    Input:
+    - LX is a list of lists X1,...,XN such that each Xi are
+    minimal elts (i.e. elts are not pairwise comparable)
+    - depth (default 0): the recursion depth (to control nb of processes in use)
+    - n_procs (default 1): max number of processes to use
+    Output:
+    - a list LY of the lists Y1,...,YM of the minimal elts of the Xi
+    such that the elts of Y1 \\cup...\\cup YM are not pairwise comparable
+    """
+    T = 6 # Parameter threshold at which we switch back to non-recursive computations
+    if sum(map(len,LX)) <= T:
+        return serial_min_poset(LX, f)
+    LX = split(LX)
+    # Parallel split
+    if depth < int(log2(n_procs))-1:
+        with MyPool(2) as p:
+            LX = p.map(partial(parallel_min_poset, f=f, depth=depth+1, n_procs=n_procs), LX)
+    else:
+        LX = list(map(partial(parallel_min_poset, f=f, depth=depth+1, n_procs=n_procs), LX))
+    # sync
+    LX = parallel_min_merge(LX[0], LX[1], f, depth, n_procs)
+    return LX[0]+LX[1]
+
+
+# Below we create a variant MyPool of Pool class to allow subprocess
+class NoDaemonProcess(multiprocessing.Process):
+    @property
+    def daemon(self):
+        return False
+
+    @daemon.setter
+    def daemon(self, value):
+        pass
+
+class NoDaemonContext(type(multiprocessing.get_context())):
+    Process = NoDaemonProcess
+
+class MyPool(multiprocessing.pool.Pool):
+    def __init__(self, *args, **kwargs):
+        kwargs['context'] = NoDaemonContext()
+        super(MyPool, self).__init__(*args, **kwargs)

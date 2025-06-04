@@ -5,12 +5,12 @@ import src.minimat as minimat
 # DM[i] are the cyclic flats of rk i of M##
 ############
 # Example: the Vàmos matroid
-d = 9
+d = 10
 DM = [[],[], [], [{1, 2, 3, 4},{3, 4, 5, 6},{5, 6, 7, 8},{1, 2, 7, 8},{3, 4, 7, 8}]]
 ############
 
 # Compute upper cover of HT
-mL = minimat.minimal_extensions(DM, d, S = [1,2,3,4], v=1, preprocess = False)
+mL = minimat.minimal_extensions(DM, d, S = [1,2,3,4], v=1, preprocess = False, n_procs=1)
 
 # Printing results
 print("Found {} minimal matroids above M:".format(len(mL)))
