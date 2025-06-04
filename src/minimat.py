@@ -230,7 +230,8 @@ def minimal_extensions(CF, d, S=[1,2,3,4], v=0, preprocess=False, n_procs=1):
     XT, P = HT
     tleaf, tmins = 0, 0
 
-    v>0 and print("Compute minimals in " + ", ".join(["S{}(M)".format(i) for i in S]))
+    v>0 and print("Compute minimals in " + ", ".join(["S{}(M)".format(i) for i in S]) +
+                   " ({} process{})".format(n_procs, "es"*(n_procs>1)))
 
     Lcumins = []
 
@@ -241,31 +242,29 @@ def minimal_extensions(CF, d, S=[1,2,3,4], v=0, preprocess=False, n_procs=1):
             if not redund_edge(XT, x, i): # Check x is not redundant in XT
                 Lcands.append([add_edge(HT, x, i), x])
         t = time()
-        v > 0 and print("Min cands:")
         with Pool(n_procs) as p:
             Lcands = p.map(
                 partial(poset_mins_part, LX=Lcumins, f=inf_hyper),  # Compute minimal candidates
                 p.map(partial(comp_leaves, r=i, pproc=preprocess),  # Compute candidates
-                    p.map(partial(show_dep, v=v-1), Lcands)           # Show current dep
+                    p.map(partial(show_dep, v=v-1), Lcands)           # Show current dependancy
                 )
             )
         t1 = time(); tleaf += t1 - t
-        v > 0 and print("Intermins:")
+        v > 1 and  print("Min cands: {:.2f}s ; Intermins: ".format(t1 - t), end="")
         Lmins = parallel_min_poset(Lcands, inf_hyper, n_procs=n_procs)
         Lcumins.append([])
         for mins in Lmins:
             Lcumins[-1].extend(mins)
         tmins += time() - t1
-        v>1 and print("{:,} current mins".format(sum(map(len,Lcumins))))
-        v>1 and print(tleaf, tmins)
+        v>1 and print("{:.2f}s ; {:,} current mins".format(time()-t1, sum(map(len,Lcumins))))
 
-    v>0 and print("Time elapsed {:.2f}s (total) ; {:.2f}s (cand) ; {:.2f}s (mins)\n".format(tleaf+tmins, tleaf, tmins))
+    v>0 and print("Time elapsed {:.2f}s (total) ; {:.2f}s (min cands) ; {:.2f}s (inter mins)\n".format(tleaf+tmins, tleaf, tmins))
     cumins = []
     for l in Lcumins:
         cumins += [ hyper_to_cyclic(ll,d) for ll in l ]
     return cumins
 
 def show_dep(cand, v):
-    if v > 0:
+    if v > 1:
         print("Add", cand[1])
     return cand[0]
