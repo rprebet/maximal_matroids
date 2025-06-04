@@ -35,18 +35,19 @@ Then, it defined the input: ground set and cyclic flats listed by increasing ran
 
 Then, it computes all minimal extensions above the matroid encoded by `DM`, and stores them in `mL`.
 ```python
-> mL = minimat.minimal_extensions(DM, d, S = [1,2,3,4], v=1, preprocess = False)
+> mL = minimat.minimal_extensions(DM, d, S = [1,2,3,4], v=1, preprocess = False, n_procs=1)
 
-Compute minimals in S1(M), S2(M), S3(M), S4(M)
-Time elapsed 0.06s (total) ; 0.01s (cand) ; 0.05s (mins)
+Compute minimals in S1(M), S2(M), S3(M), S4(M) (1 process)
+Time elapsed 0.07s (total) ; 0.04s (min cands) ; 0.03s (inter mins)
 ```
 Here, we set the optional parameters:
 * `S=[1,2,3,4]` to compute extensions in $S_1(M)$, $S_2(M)$, $S_3(M)$ and $S_4(M)$;
 * `v=1` we print only global information about the computations : the $S_i(M)$ in which we compute and the timings:
-    * `(tot)`: total elapsed time;
-    * `(cand)`: time spent computing extensions;
-    * `(mins)`: time spent identifying the minimal ones.
+    * `(total)`: total elapsed time;
+    * `(min cands)`: time spent computing minimal extensions when adding 1 new dependancy;
+    * `(inter mins)`: time spent interreduce to the minimal extensions among the above ones.
 * `preprocess=False` an additional feature that might remove some useless recursive calls during computation. Since this does not change the timings that much, we generally do not use it.
+* `n_procs=1` (default 1) is the maximum number of processes to use for parallelization. If n_procs <= 0 it uses automatically all available cpus.
 
 Then, we display the result using a tailored function for nice printing.
 ```python

@@ -5,7 +5,7 @@ import src.minimat as minimat
 # DM[i] are the cyclic flats of rk i of M##
 ############
 # Example: the Vàmos matroid
-d = 10
+d = 9
 DM = [[],[], [], [{1, 2, 3, 4},{3, 4, 5, 6},{5, 6, 7, 8},{1, 2, 7, 8},{3, 4, 7, 8}]]
 ############
 
