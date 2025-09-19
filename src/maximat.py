@@ -8,12 +8,12 @@ from src.hypergraph import *
 from src.comparison import *
 from src.datamat import *
 
-def inf_cyclic(CF1, CF2, d):
+def sup_cyclic(CF1, CF2, d):
     """
-    Test whether CF1 <= CF2 or not
+    Test whether CF1 >= CF2 or not
     where Mi is the matroid defined by CFi, with ground set [d]
     """
-    return inf_hyper(cyclic_to_hyper(CF1, d), cyclic_to_hyper(CF2, d))
+    return sup_hyper(cyclic_to_hyper(CF1, d), cyclic_to_hyper(CF2, d))
 
 def solve_int(XT, r):
     """
@@ -119,7 +119,7 @@ def comp_leaves(HT, r, pproc=False):
     Input: labeled hypergraph XT (2-list of sets), r (int), pproc (Bool)
     Output: a list Lcand of labeled hypergraphs
 
-    Compute all hypergraphs corresponding to the matroid extensions of
+    Compute all hypergraphs corresponding to the matroid degenerations of
     the input hypergraph, and that contain no additional Type < r edge.
 
     Option pproc performs a call to solve_int before any recursive call.
@@ -202,16 +202,16 @@ def add_edge(HT, x, i):
     if i == 4:
         return [ [HT[0][0], HT[0][1]+[x]] , HT[1]]
 
-def minimal_extensions(CF, d, S=[1,2,3,4], v=0, preprocess=False, n_procs=1):
+def maximal_degenerations(CF, d, S=[1,2,3,4], v=0, preprocess=False, n_procs=1):
     # CF[i] are the cyclic flats of rk i of the input matroid M ##
     """
     Input: CF (4-list of sets), d (int), S (sublist of [1,2,3,4]), v(Int), preproccess (Bool)
     CF[i] are the cyclic flats of rk i of the input matroid M with ground set [d].
 
-    Output: a list cumins of 4-list of sets
+    Output: a list cumaxs of 4-list of sets
 
-    The function computes all matroid exensions of M, that belong to all S_i, for i in the input list S.
-    These extensions are encoded by their cyclic flats in the output (as for the input M).
+    The function computes all matroid degenerations of M, that belong to all S_i, for i in the input list S.
+    These degenerations are encoded by their cyclic flats in the output (as for the input M).
 
     Integer v>0 controls verbosity level during computations and preprocess enable preprocessing in
     comp_leaves function.
@@ -228,14 +228,14 @@ def minimal_extensions(CF, d, S=[1,2,3,4], v=0, preprocess=False, n_procs=1):
 
     HT = cyclic_to_hyper(CF, d)
     XT, P = HT
-    tleaf, tmins = 0, 0
+    tleaf, tmaxs = 0, 0
 
-    v>0 and print("Compute minimals in " + ", ".join(["S{}(M)".format(i) for i in S]) +
+    v>0 and print("Compute maximals in " + ", ".join(["S{}(M)".format(i) for i in S]) +
                    " ({} process{})".format(n_procs, "es"*(n_procs>1)))
 
-    Lcumins = []
+    Lcumaxs = []
 
-    for i in sorted(S, reverse=True): # We start by highest Si, being smallest
+    for i in sorted(S, reverse=True): # We start by highest Si, being largest degenerations
         Lcands = []
         for Lind in combinations(range(d), i): # Take a circuit of size i
             x = { min(P[ind]) for ind in Lind } # Its representative
@@ -244,25 +244,25 @@ def minimal_extensions(CF, d, S=[1,2,3,4], v=0, preprocess=False, n_procs=1):
         t = time()
         with Pool(n_procs) as p:
             Lcands = p.map(
-                partial(poset_mins_part, LX=Lcumins, f=inf_hyper),  # Compute minimal candidates
+                partial(poset_maxs_part, LX=Lcumaxs, f=sup_hyper),  # Compute maximal candidates
                 p.map(partial(comp_leaves, r=i, pproc=preprocess),  # Compute candidates
                     p.map(partial(show_dep, v=v-1), Lcands)           # Show current dependancy
                 )
             )
         t1 = time(); tleaf += t1 - t
-        v > 1 and  print("Min cands: {:.2f}s ; Intermins: ".format(t1 - t), end="")
-        Lmins = parallel_min_poset(Lcands, inf_hyper, n_procs=n_procs)
-        Lcumins.append([])
-        for mins in Lmins:
-            Lcumins[-1].extend(mins)
-        tmins += time() - t1
-        v>1 and print("{:.2f}s ; {:,} current mins".format(time()-t1, sum(map(len,Lcumins))))
+        v > 1 and  print("Max cands: {:.2f}s ; Intermax: ".format(t1 - t), end="")
+        Lmaxs = parallel_max_poset(Lcands, sup_hyper, n_procs=n_procs)
+        Lcumaxs.append([])
+        for maxs in Lmaxs:
+            Lcumaxs[-1].extend(maxs)
+        tmaxs += time() - t1
+        v>1 and print("{:.2f}s ; {:,} current maxs".format(time()-t1, sum(map(len,Lcumax))))
 
-    v>0 and print("Time elapsed {:.2f}s (total) ; {:.2f}s (min cands) ; {:.2f}s (inter mins)\n".format(tleaf+tmins, tleaf, tmins))
-    cumins = []
-    for l in Lcumins:
-        cumins += [ hyper_to_cyclic(ll,d) for ll in l ]
-    return cumins
+    v>0 and print("Time elapsed {:.2f}s (total) ; {:.2f}s (max cands) ; {:.2f}s (inter maxs)\n".format(tleaf+tmaxs, tleaf, tmaxs))
+    cumaxs = []
+    for l in Lcumaxs:
+        cumaxs += [ hyper_to_cyclic(ll,d) for ll in l ]
+    return cumaxs
 
 def show_dep(cand, v):
     if v > 1:

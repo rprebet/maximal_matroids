@@ -62,10 +62,10 @@ def replace(XT, P):
     Output: labeled hypergraph XT1 (2-list of sets)
 
     Replace elements in sets of each XT[i] based on the equivalence relation
-    defined by P, taking minimal element as representative.
+    defined by P, taking minimum element as representative.
     Return in XT1, only resulting sets of size >= 3+i=(Type+1)
     """
-    # Construct a dict Lrep to associate each element to its minimal representative
+    # Construct a dict Lrep to associate each element to its minimum representative
     Lrep = { elem: min(p) for p in P for elem in p}
     # Contruct new hypergraph L1 based on the dict Lrep (repetition is avoided by set structure)
     XT1 = [ [ { Lrep[j] for j in l } for l in L ] for L in XT ]
