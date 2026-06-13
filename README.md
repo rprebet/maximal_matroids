@@ -1,11 +1,13 @@
 # Maximat: a software for efficiently computing maximal matroid degenerations.
 
-This repository contains an open source implementation in Python of algorithms described in the submitted paper:
+This repository contains an open source implementation in Python of the algorithms described in the following paper. 
 
 > *Efficient Algorithms for Maximal Matroid Degenerations and
 Irreducible Decompositions of Circuit Varieties*<br>
-> E.Liwski and F.Mohammadi and R.Prébet, Apr. 2025<br>
-> <https://arxiv.org/abs/2504.16632>
+> E.Liwski and F.Mohammadi and R.Prébet, Apr. 2026<br>
+> <https://doi.org/10.1016/j.jalgebra.2025.12.003>
+
+This is the correct reference for citing this software.
 
 Consider matroids $M$ and $N$ with ground set $\{1,\dotsc,d\}$, given by their list of cyclic flats: `CF(M)` and `CF(N)`, resp..<br>
 If $M$ and $N$ have **rank at most 4**, then one can:
